@@ -16,14 +16,28 @@ A unified dashboard that aggregates investment data from Fidelity, Kraken, and W
 ```
 portfoliosync/
 ├── backend/
-│   ├── api/
-│   ├── models/
-│   ├── utils/
-│   └── main.py
+│ ├── api/
+│ │ ├── init.py
+│ │ ├── fidelity.py
+│ │ ├── kraken.py
+│ │ └── webull.py
+│ ├── models/
+│ │ ├── init.py
+│ │ └── portfolio.py
+│ ├── utils/
+│ │ ├── init.py
+│ │ └── auth.py
+│ └── main.py
 ├── frontend/
-│   ├── static/
-│   └── templates/
-└── tests/
+│ ├── static/
+│ │ ├── css/
+│ │ └── js/
+│ └── templates/
+│ └── index.html
+├── tests/
+│ ├── test_api.py
+│ └── test_models.py
+└── config.py
 ```
 
 ## Installation

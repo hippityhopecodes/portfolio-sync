@@ -1,4 +1,4 @@
-# PortfolioSync - Investment Portfolio Aggregator
+# PortfolioSync - Investment Portfolio Manager
 
 A unified dashboard that aggregates investment data from Fidelity, Kraken, and Webull into a dark-themed interface. Built with Python, FastAPI, and modern web technologies.
 
@@ -15,29 +15,43 @@ A unified dashboard that aggregates investment data from Fidelity, Kraken, and W
 ## Structure
 ```
 portfoliosync/
-├── backend/
-│ ├── api/
-│ │ ├── init.py
-│ │ ├── fidelity.py
-│ │ ├── kraken.py
-│ │ └── webull.py
-│ ├── models/
-│ │ ├── init.py
-│ │ └── portfolio.py
-│ ├── utils/
-│ │ ├── init.py
-│ │ └── auth.py
-│ └── main.py
-├── frontend/
-│ ├── static/
-│ │ ├── css/
-│ │ └── js/
-│ └── templates/
-│ └── index.html
+├── src/
+│   ├── backend/
+│   │   ├── __init__.py
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── fidelity.py    # Fidelity API integration
+│   │   │   ├── kraken.py      # Kraken API integration
+│   │   │   └── webull.py      # Webull API integration
+│   │   ├── portfolio_manager.py  # Main logic for managing all APIs
+│   │   ├── config.py          # API keys and configuration
+│   │   └── main.py           # FastAPI application
+│   │
+│   └── frontend/
+│       ├── static/
+│       │   ├── css/
+│       │   │   ├── style.css      # Main styles
+│       │   │   └── dark-theme.css # Dark theme styles
+│       │   ├── js/
+│       │   │   ├── api.js         # API calls to backend
+│       │   │   ├── charts.js      # Chart.js setup and updates
+│       │   │   └── main.js        # Main frontend logic
+│       │   └── img/
+│       │       └── favicon.ico
+│       └── templates/
+│           └── index.html     # Single page application
+│
 ├── tests/
-│ ├── test_api.py
-│ └── test_models.py
-└── config.py
+│   ├── __init__.py
+│   ├── test_api/
+│   │   ├── test_fidelity_api.py
+│   │   ├── test_kraken_api.py
+│   │   └── test_webull_api.py
+│   └── test_portfolio_manager.py
+│
+├── .env                  # Environment variables (API keys)
+├── requirements.txt      # Python dependencies
+└── README.md
 ```
 
 ## Installation

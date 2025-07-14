@@ -20,37 +20,40 @@ portfoliosync/
 │   │   ├── __init__.py
 │   │   ├── api/
 │   │   │   ├── __init__.py
-│   │   │   ├── fidelity.py    # Fidelity API integration
-│   │   │   ├── kraken.py      # Kraken API integration
-│   │   │   └── webull.py      # Webull API integration
-│   │   ├── portfolio_manager.py  # Main logic for managing all APIs
-│   │   ├── config.py          # API keys and configuration
-│   │   └── main.py           # FastAPI application
+│   │   │   └── portfolio_tracker.py    # Single file for all portfolio tracking
+│   │   ├── utils/
+│   │   │   ├── __init__.py
+│   │   │   ├── google_auth.py         # Google Sheets authentication
+│   │   │   └── market_data.py         # yfinance helper functions
+│   │   ├── config.py                  # Configuration settings
+│   │   └── main.py                    # FastAPI application
 │   │
 │   └── frontend/
 │       ├── static/
 │       │   ├── css/
-│       │   │   ├── style.css      # Main styles
-│       │   │   └── dark-theme.css # Dark theme styles
+│       │   │   ├── style.css          # Main styles
+│       │   │   └── dark-theme.css     # Dark theme styles
 │       │   ├── js/
-│       │   │   ├── api.js         # API calls to backend
-│       │   │   ├── charts.js      # Chart.js setup and updates
-│       │   │   └── main.js        # Main frontend logic
+│       │   │   ├── api.js             # API calls to backend
+│       │   │   ├── charts.js          # Chart.js setup and updates
+│       │   │   └── main.js            # Main frontend logic
 │       │   └── img/
 │       │       └── favicon.ico
 │       └── templates/
-│           └── index.html     # Single page application
+│           └── index.html             # Single page dashboard
 │
 ├── tests/
 │   ├── __init__.py
-│   ├── test_api/
-│   │   ├── test_fidelity_api.py
-│   │   ├── test_kraken_api.py
-│   │   └── test_webull_api.py
-│   └── test_portfolio_manager.py
+│   ├── test_portfolio_tracker.py      # Tests for portfolio tracking
+│   └── test_market_data.py           # Tests for market data functions
 │
-├── .env                  # Environment variables (API keys)
-├── requirements.txt      # Python dependencies
+├── credentials/                       # Secured credentials directory
+│   ├── .gitignore                    # Ignore sensitive files
+│   ├── google_credentials.json       # Google API credentials
+│   └── token.pickle                  # Google API token
+│
+├── .env                              # Environment variables
+├── requirements.txt                  # Python dependencies
 └── README.md
 ```
 

@@ -1,10 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .portfolio_manager import PortfolioManager 
+from .api.portfolio_tracker import PortfolioTracker
 from .config import settings
 
-# Initialize the PortfolioManager with credentials from settings
-app = FastAPI()
+# Initialize FastAPI app
+app = FastAPI(title="PortfolioSync")
 
 # CORS middleware for frontend access
 app.add_middleware(
@@ -15,24 +15,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize PortfolioManager with credentials from settings
-portfolio_manager = PortfolioManager(
-    fidelity_creds=settings.fidelity_creds,
-    webull_creds=settings.webull_creds,
-    kraken_creds=settings.kraken_creds
-)
+# Initialize portfolio tracker
+portfolio_tracker = PortfolioTracker()
 
-@app.get("/api/portfolio")
+@app.get("/api/portfolio/summary")
 async def get_portfolio():
     """
     Get current portfolio data from all accounts
     """
-    return await portfolio_manager.get_total_portfolio()
+    try:
+        portfolio_tracker.update_prices()
+        return portfolio_tracker.get_summary()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/portfolio/refresh")
 async def refresh_portfolio():
     """
     Force refresh of portfolio data and update prices
     """
-    await portfolio_manager.update_prices()
-    return await portfolio_manager.get_total_portfolio()
+    try:
+        portfolio_tracker.load_positions()
+        portfolio_tracker.update_prices()
+        return {"status": "success", "message": "Portfolio refreshed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

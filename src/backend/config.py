@@ -1,5 +1,5 @@
 # Configuration settings
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from pathlib import Path
 
 class Settings(BaseSettings):
@@ -16,9 +16,8 @@ class Settings(BaseSettings):
 
     # Market data (seconds)
     cache_duration: int = 60
-    rate_limit_delay: float = 0.1
+    rate_limit_delay: float = 1.0  # Increased to 1 second between requests
 
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env"}
 
 settings = Settings()

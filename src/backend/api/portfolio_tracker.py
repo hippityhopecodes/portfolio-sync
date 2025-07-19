@@ -1,10 +1,11 @@
 # Tracks all of the portfolio data
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from ..utils.google_auth import GoogleSheetsClient
 from ..config import settings
+from ..utils.market_data import MarketDataService
 
 # Enum values for different broker sheets within the Google Sheet
 class BrokerSheet(Enum):
@@ -29,10 +30,13 @@ class Position:
     def _validate(self):
         if self.quantity <= 0:
             raise ValueError("Quantity must be positive")
+        
         if self.cost_basis < 0:
             raise ValueError("Cost basis must be non-negative")
+        
         if not self.symbol:
             raise ValueError("Symbol cannot be empty")
+        
         if self.broker == BrokerSheet.FIDELITY and not self.account_type:
             raise ValueError("Account type is required for Fidelity broker")
         
@@ -48,9 +52,33 @@ def gain_loss(self) -> Optional[float]:
         return self.market_value - (self.quantity * self.cost_basis)
     return None
 
-
 class PortfolioTracker:
     def __init__(self):
         self.sheets_client = GoogleSheetsClient()
         self.market_data = MarketDataService()
         self.positions: List[Position] = []
+        self.load_positions()
+
+    def load_positions(self):
+        self.positions = []
+        self._load_fidelity()
+        self._load_webull()
+        self._load_kraken()
+
+    def _load_fidelity(self):
+        pass
+
+    def _load_webull(self):
+        pass
+
+    def _load_kraken(self):
+        pass
+
+    def update_prices(self):
+        pass
+
+    def get_summary(self) -> Dict:
+        pass
+
+    def _get_broker_summary(self) -> Dict:
+        pass

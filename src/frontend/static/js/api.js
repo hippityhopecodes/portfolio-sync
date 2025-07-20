@@ -105,7 +105,7 @@ const API = {
         const mockPrices = {
             // Major stocks
             'AAPL': 185.50, 'GOOGL': 2725.00, 'MSFT': 385.20, 'TSLA': 245.30,
-            'NVDA': 950.80, 'AMZN': 155.75, 'META': 485.25, 'NFLX': 580.40,
+            'NVDA': 172.40, 'AMZN': 155.75, 'META': 485.25, 'NFLX': 580.40,
             'CMA': 47.85, 'JPM': 175.90, 'BAC': 32.45, 'WFC': 45.30,
             // ETFs and Index Funds
             'SPY': 485.20, 'QQQ': 395.75, 'VTI': 245.60, 'IWM': 198.30,
@@ -141,6 +141,14 @@ const API = {
                 if (finnhubPrice > 0) return finnhubPrice;
             } catch (error) {
                 console.log(`Finnhub failed for ${symbol}:`, error.message);
+            }
+
+            // Method 2: Try Yahoo Finance alternative API
+            try {
+                const yahooPrice = await this.getYahooFinancePrice(symbol);
+                if (yahooPrice > 0) return yahooPrice;
+            } catch (error) {
+                console.log(`Yahoo Finance failed for ${symbol}:`, error.message);
             }
         }
 
@@ -259,6 +267,8 @@ const API = {
         // Using demo API key (limited requests) - you can get a free one at https://finnhub.io/
         const apiKey = 'demo'; // Replace with your free API key for more requests
         
+        console.log(`🔍 Fetching ${symbol} from Finnhub API...`);
+        
         const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`, {
             method: 'GET',
             headers: {
@@ -266,12 +276,53 @@ const API = {
             }
         });
 
-        if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+        if (!response.ok) {
+            console.warn(`Finnhub API error for ${symbol}: ${response.status}`);
+            throw new Error(`Finnhub API error: ${response.status}`);
+        }
         
         const data = await response.json();
-        const price = data.c; // Current price
-        if (!price || price <= 0) throw new Error('Invalid price data');
+        console.log(`Finnhub response for ${symbol}:`, data);
         
+        const price = data.c; // Current price
+        if (!price || price <= 0) {
+            console.warn(`Invalid Finnhub price for ${symbol}: ${price}`);
+            throw new Error('Invalid price data');
+        }
+        
+        console.log(`✅ Finnhub price for ${symbol}: $${price}`);
+        return price;
+    },
+
+    // Get stock price from Yahoo Finance alternative API
+    async getYahooFinancePrice(symbol) {
+        console.log(`🔍 Fetching ${symbol} from Yahoo Finance API...`);
+        
+        // Using a free proxy service for Yahoo Finance data
+        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            console.warn(`Yahoo Finance API error for ${symbol}: ${response.status}`);
+            throw new Error(`Yahoo Finance API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Yahoo Finance response for ${symbol}:`, data);
+        
+        const result = data?.chart?.result?.[0];
+        const price = result?.meta?.regularMarketPrice || result?.meta?.previousClose;
+        
+        if (!price || price <= 0) {
+            console.warn(`Invalid Yahoo Finance price for ${symbol}: ${price}`);
+            throw new Error('Invalid price data from Yahoo Finance');
+        }
+        
+        console.log(`✅ Yahoo Finance price for ${symbol}: $${price}`);
         return price;
     },
 

@@ -208,4 +208,9 @@ async def refresh_portfolio():
         raise HTTPException(status_code=500, detail=f"Refresh error: {str(e)}")
 
 # Export for Vercel
-handler = app
+def handler(request, response):
+    """Vercel handler wrapper"""
+    return app(request, response)
+
+# Also export the app directly
+app = app

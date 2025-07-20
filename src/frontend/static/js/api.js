@@ -38,18 +38,18 @@ const API = {
                 symbol = values[1].trim();
                 shares = parseFloat(values[2]) || 0;
                 cost_basis = parseFloat(values[3]) || 0;
+                console.log(`Using Fidelity format: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
             } else if (!hasAccountColumn && values.length >= 3) {
                 // Webull/Kraken format: Symbol,Quantity,Cost Basis
                 account = 'Trading'; // Default account name
                 symbol = values[0].trim();
                 shares = parseFloat(values[1]) || 0;
                 cost_basis = parseFloat(values[2]) || 0;
+                console.log(`Using Webull/Kraken format: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
             } else {
-                console.log(`❌ Skipping row ${i}: insufficient columns`);
+                console.log(`❌ Skipping row ${i}: insufficient columns (${values.length} columns)`);
                 continue;
             }
-            
-            console.log(`Processing: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
             
             // Skip if symbol is not valid or if it's an account type row
             if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol) && account !== 'Account') {

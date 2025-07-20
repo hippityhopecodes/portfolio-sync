@@ -71,14 +71,22 @@ const API = {
 
         // Use mock prices to avoid CORS issues on GitHub Pages
         const mockPrices = {
+            // Major stocks
             'AAPL': 185.50, 'GOOGL': 2725.00, 'MSFT': 385.20, 'TSLA': 245.30,
             'NVDA': 950.80, 'AMZN': 155.75, 'META': 485.25, 'NFLX': 580.40,
             'CMA': 47.85, 'JPM': 175.90, 'BAC': 32.45, 'WFC': 45.30,
-            'BTC-USD': 67500.00, 'ETH-USD': 3850.00, 'BNB-USD': 615.00,
+            // ETFs and Index Funds
             'SPY': 485.20, 'QQQ': 395.75, 'VTI': 245.60, 'IWM': 198.30,
+            'VOO': 445.80, 'VXUS': 58.25, 'BND': 76.50, 'VEA': 47.90,
             // Fidelity mutual funds
             'FSKAX': 159.85, 'FTIHX': 15.92, 'FXNAX': 11.45, 'FZROX': 14.25,
-            'FZILX': 12.85, 'FDVV': 35.60, 'FXNAC': 55.40
+            'FZILX': 12.85, 'FDVV': 35.60, 'FXNAC': 55.40, 'FNILX': 58.75,
+            // Crypto
+            'BTC-USD': 67500.00, 'ETH-USD': 3850.00, 'BNB-USD': 615.00,
+            'ADA-USD': 0.45, 'SOL-USD': 185.30, 'DOT-USD': 7.25,
+            // Common individual stocks that might be in portfolios
+            'AMD': 145.25, 'INTC': 32.80, 'DIS': 95.40, 'KO': 61.20,
+            'PEP': 175.60, 'V': 265.80, 'MA': 420.30, 'PYPL': 62.45
         };
         
         const price = mockPrices[symbol.toUpperCase()] || mockPrices[symbol] || 100.00;
@@ -89,12 +97,15 @@ const API = {
     // Load data from Google Sheets
     async loadSheetData(broker, url) {
         try {
-            console.log(`Loading ${broker} data from: ${url}`);
+            // Add cache-busting parameter to force fresh data
+            const cacheBustUrl = `${url}&cachebust=${Date.now()}`;
+            console.log(`Loading ${broker} data from: ${cacheBustUrl}`);
             
-            const response = await fetch(url, {
+            const response = await fetch(cacheBustUrl, {
                 mode: 'cors',
                 headers: {
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
             });
             

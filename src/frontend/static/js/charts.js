@@ -1,3 +1,10 @@
+/**
+ * Portfolio Sync Charts Module
+ * 
+ * Handles Chart.js initialization and updates for portfolio visualization.
+ * Creates responsive allocation and broker breakdown charts with real-time data.
+ */
+
 const Charts = {
     allocationChart: null,
     brokerChart: null,

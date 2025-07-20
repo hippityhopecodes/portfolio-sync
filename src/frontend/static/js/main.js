@@ -1,11 +1,18 @@
+/**
+ * Portfolio Sync Main Application
+ * 
+ * Handles UI initialization, data fetching, DOM updates, and user interactions.
+ * Coordinates between the API module and Charts module to display portfolio data.
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing app...'); // Debug log
+    console.log('DOM loaded, initializing app...');
     
     // Initialize charts if Charts is available
     if (typeof Charts !== 'undefined' && Charts.initializeCharts) {
         try {
             Charts.initializeCharts();
-            console.log('Charts initialized successfully'); // Debug log
+            console.log('Charts initialized successfully');
         } catch (error) {
             console.warn('Failed to initialize charts:', error);
         }

@@ -1,3 +1,16 @@
+/**
+ * Portfolio Sync API Module
+ * 
+ * Handles data fetching from Google Sheets, real-time price updates from multiple
+ * financial APIs, and portfolio calculations for multi-broker tracking.
+ * 
+ * Features:
+ * - Google Sheets CSV integration
+ * - Multi-API price fetching with fallbacks
+ * - Support for stocks, ETFs, mutual funds, and cryptocurrencies
+ * - Real-time portfolio value calculations
+ */
+
 const API = {
     // Google Sheets configuration
     SHEET_ID: '1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0',
@@ -132,18 +145,17 @@ const API = {
         return price;
     },
 
-    // Get real stock price from financial APIs
+    // Get real stock price from financial APIs with multiple fallbacks
     async getRealStockPrice(symbol) {
-        // Method 1: Try Google Finance API (free, often more CORS-friendly)
+        // For stocks and funds, try multiple APIs in order of reliability
         if (!this.isCryptoSymbol(symbol)) {
             try {
-                const googlePrice = await this.getGoogleFinancePrice(symbol);
-                if (googlePrice > 0) return googlePrice;
+                const financialPrice = await this.getGoogleFinancePrice(symbol);
+                if (financialPrice > 0) return financialPrice;
             } catch (error) {
                 console.log(`Financial API failed for ${symbol}:`, error.message);
             }
 
-            // Method 2: Try Twelvedata API (free tier, good CORS support)
             try {
                 const twelveDataPrice = await this.getTwelveDataPrice(symbol);
                 if (twelveDataPrice > 0) return twelveDataPrice;
@@ -151,7 +163,6 @@ const API = {
                 console.log(`Twelvedata failed for ${symbol}:`, error.message);
             }
 
-            // Method 3: Try Finnhub API for stocks (free tier, CORS enabled)
             try {
                 const finnhubPrice = await this.getFinnhubPrice(symbol);
                 if (finnhubPrice > 0) return finnhubPrice;
@@ -159,7 +170,6 @@ const API = {
                 console.log(`Finnhub failed for ${symbol}:`, error.message);
             }
 
-            // Method 4: Try CORS proxy with Yahoo Finance
             try {
                 const proxyYahooPrice = await this.getYahooFinanceProxyPrice(symbol);
                 if (proxyYahooPrice > 0) return proxyYahooPrice;
@@ -167,7 +177,6 @@ const API = {
                 console.log(`Yahoo Finance (proxy) failed for ${symbol}:`, error.message);
             }
 
-            // Method 5: Try Alpha Vantage if configured
             try {
                 const alphaPrice = await this.getAlphaVantagePrice(symbol);
                 if (alphaPrice > 0) return alphaPrice;
@@ -175,7 +184,6 @@ const API = {
                 console.log(`Alpha Vantage failed for ${symbol}:`, error.message);
             }
 
-            // Method 6: Try Financial Modeling Prep API
             try {
                 const fmpPrice = await this.getFinancialModelingPrepPrice(symbol);
                 if (fmpPrice > 0) return fmpPrice;
@@ -184,7 +192,7 @@ const API = {
             }
         }
 
-        // Method 7: Try free crypto API for crypto symbols
+        // For cryptocurrencies, use specialized crypto APIs
         if (this.isCryptoSymbol(symbol)) {
             try {
                 const cryptoPrice = await this.getCryptoPriceFromCoinGecko(symbol);
@@ -201,18 +209,7 @@ const API = {
             }
         }
 
-        // Method 3: Try Alpha Vantage (you'll need a free API key)
-        // Uncomment and add your API key to use this
-        /*
-        try {
-            const alphaPrice = await this.getAlphaVantagePrice(symbol);
-            if (alphaPrice > 0) return alphaPrice;
-        } catch (error) {
-            console.log(`Alpha Vantage failed for ${symbol}:`, error.message);
-        }
-        */
-
-        throw new Error('All real price sources failed');
+        throw new Error('All price sources failed');
     },
 
     // Check if symbol is cryptocurrency
@@ -294,10 +291,9 @@ const API = {
         return price;
     },
 
-    // Get stock price from Finnhub (free tier, CORS-enabled)
+    // Finnhub API (free tier with demo key)
     async getFinnhubPrice(symbol) {
-        // Using demo API key (limited requests) - you can get a free one at https://finnhub.io/
-        const apiKey = 'demo'; // Replace with your free API key for more requests
+        const apiKey = 'demo'; // Replace with your free API key for higher limits
         
         console.log(`🔍 Fetching ${symbol} from Finnhub API...`);
         
@@ -326,12 +322,11 @@ const API = {
         return price;
     },
 
-    // Get stock price from Google Finance API (free, good CORS support)
+    // Financial Modeling Prep API (CORS-friendly stock prices)
     async getGoogleFinancePrice(symbol) {
-        console.log(`🔍 Fetching ${symbol} from Google Finance API...`);
+        console.log(`🔍 Fetching ${symbol} from Financial Modeling Prep API...`);
         
         try {
-            // Using Financial Modeling Prep which has better CORS support
             const response = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=demo`, {
                 method: 'GET',
                 headers: {
@@ -456,11 +451,9 @@ const API = {
         return data.latestPrice || 0;
     },
 
-    // Alpha Vantage API (requires free API key)
+    // Alpha Vantage API (demo key has limited access)
     async getAlphaVantagePrice(symbol) {
-        // You'll need to get a free API key from https://www.alphavantage.co/support/#api-key
-        // and replace 'YOUR_API_KEY' below
-        const apiKey = 'demo'; // Replace with your actual API key for production use
+        const apiKey = 'demo'; // Replace with your free API key from alphavantage.co
         
         if (apiKey === 'YOUR_API_KEY') {
             throw new Error('Alpha Vantage API key not configured');
@@ -491,12 +484,11 @@ const API = {
         return parsedPrice;
     },
 
-    // Financial Modeling Prep API (another free option)
+    // Financial Modeling Prep API (alternative endpoint for redundancy)
     async getFinancialModelingPrepPrice(symbol) {
-        console.log(`🔍 Fetching ${symbol} from Financial Modeling Prep API...`);
+        console.log(`🔍 Fetching ${symbol} from Financial Modeling Prep API (alternative)...`);
         
         try {
-            // Free tier, no API key needed for basic quotes
             const response = await fetch(`https://financialmodelingprep.com/api/v3/quote-short/${symbol}?apikey=demo`, {
                 method: 'GET',
                 headers: {
@@ -525,7 +517,7 @@ const API = {
         }
     },
 
-    // Load data from Google Sheets
+    // Load data from Google Sheets and calculate portfolio values
     async loadSheetData(broker, url) {
         try {
             // Add cache-busting parameter to force fresh data

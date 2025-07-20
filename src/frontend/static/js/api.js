@@ -1,7 +1,7 @@
 const API = {
     // Automatically detect environment
     BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://127.0.0.1:8000/api'  // Local development
+        ? 'http://127.0.0.1:8000/api' 
         : 'https://investment-portfolio-sync.vercel.app/api',
 
     // Mock data for GitHub Pages demo

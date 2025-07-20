@@ -1,16 +1,26 @@
-# PortfolioSync - Investment Portfolio Manager
+# PortfolioSync
 
-A unified dashboard that aggregates investment data from Fidelity, Kraken, and Webull into a dark-themed interface. Built with Python, FastAPI, and modern web technologies.
+Track your investment portfolio across multiple brokers in one dashboard
+
+## Dashboard
+
+View the live dashboard: [PortfolioSync Dashboard](https://hippityhopecodes.github.io/portfoliosync/)
 
 ## Features
 
-- Real-time portfolio tracking across platforms
-- Dark mode responsive UI 
-- Interactive financial charts
-- Secure API key management
-- Historical performance tracking
-- Data export capabilities
-- Multi-currency support
+- Real-time portfolio tracking
+- Multi-broker support (Fidelity, Webull, Kraken)
+- Automated price updates
+- Portfolio analytics and charts
+- Dark/light theme support
+
+## Local Development
+
+1. Clone the repository:
+```bash
+git clone https://github.com/hippityhopecodes/portfoliosync.git
+cd portfoliosync
+```
 
 ## Structure
 ```
@@ -38,9 +48,7 @@ portfoliosync/
 │       │   │   ├── charts.js          # Chart.js setup and updates
 │       │   │   └── main.js            # Main frontend logic
 │       │   └── img/
-│       │       └── favicon.ico
-│       └── templates/
-│           └── index.html             # Single page dashboard
+│               └── favicon.ico
 │
 ├── tests/
 │   ├── __init__.py
@@ -55,6 +63,7 @@ portfoliosync/
 ├── .env                              # Environment variables
 ├── requirements.txt                  # Python dependencies
 └── README.md
+└── index.html             # Single page dashboard
 ```
 
 ## Installation

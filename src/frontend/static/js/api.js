@@ -21,32 +21,49 @@ const API = {
         }
         
         const data = [];
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const hasAccountColumn = headers.includes('Account');
+        
+        console.log('📋 Headers:', headers, 'Has Account column:', hasAccountColumn);
+        
         for (let i = 1; i < lines.length; i++) { // Skip header
             const values = lines[i].split(',').map(val => val.trim().replace(/"/g, ''));
             console.log(`Row ${i}:`, values);
             
-            if (values.length >= 4) { // Account,Symbol,Quantity,Cost Basis
-                const account = values[0].trim();
-                const symbol = values[1].trim();
-                const shares = parseFloat(values[2]) || 0;
-                const cost_basis = parseFloat(values[3]) || 0;
-                
-                console.log(`Processing: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
-                
-                // Skip if symbol is not valid or if it's an account type row
-                if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol) && account !== 'Account') {
-                    const position = {
-                        symbol: symbol,
-                        shares: shares,
-                        cost_basis: cost_basis,
-                        current_value: 0, // Will be calculated with real prices
-                        account: account
-                    };
-                    console.log('✅ Added position:', position);
-                    data.push(position);
-                } else {
-                    console.log('❌ Skipped invalid position:', { account, symbol, shares, cost_basis, valid: this.isValidSymbol(symbol) });
-                }
+            let account, symbol, shares, cost_basis;
+            
+            if (hasAccountColumn && values.length >= 4) {
+                // Fidelity format: Account,Symbol,Quantity,Cost Basis
+                account = values[0].trim();
+                symbol = values[1].trim();
+                shares = parseFloat(values[2]) || 0;
+                cost_basis = parseFloat(values[3]) || 0;
+            } else if (!hasAccountColumn && values.length >= 3) {
+                // Webull/Kraken format: Symbol,Quantity,Cost Basis
+                account = 'Trading'; // Default account name
+                symbol = values[0].trim();
+                shares = parseFloat(values[1]) || 0;
+                cost_basis = parseFloat(values[2]) || 0;
+            } else {
+                console.log(`❌ Skipping row ${i}: insufficient columns`);
+                continue;
+            }
+            
+            console.log(`Processing: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
+            
+            // Skip if symbol is not valid or if it's an account type row
+            if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol) && account !== 'Account') {
+                const position = {
+                    symbol: symbol,
+                    shares: shares,
+                    cost_basis: cost_basis,
+                    current_value: 0, // Will be calculated with real prices
+                    account: account
+                };
+                console.log('✅ Added position:', position);
+                data.push(position);
+            } else {
+                console.log('❌ Skipped invalid position:', { account, symbol, shares, cost_basis, valid: this.isValidSymbol(symbol) });
             }
         }
         
@@ -81,9 +98,15 @@ const API = {
             // Fidelity mutual funds
             'FSKAX': 159.85, 'FTIHX': 15.92, 'FXNAX': 11.45, 'FZROX': 14.25,
             'FZILX': 12.85, 'FDVV': 35.60, 'FXNAC': 55.40, 'FNILX': 58.75,
-            // Crypto
-            'BTC-USD': 67500.00, 'ETH-USD': 3850.00, 'BNB-USD': 615.00,
-            'ADA-USD': 0.45, 'SOL-USD': 185.30, 'DOT-USD': 7.25,
+            // Crypto (both formats: BTC and BTC-USD)
+            'BTC': 67500.00, 'BTC-USD': 67500.00,
+            'ETH': 3850.00, 'ETH-USD': 3850.00,
+            'XRP': 0.62, 'XRP-USD': 0.62,
+            'DOGE': 0.085, 'DOGE-USD': 0.085,
+            'BNB': 615.00, 'BNB-USD': 615.00,
+            'ADA': 0.45, 'ADA-USD': 0.45,
+            'SOL': 185.30, 'SOL-USD': 185.30,
+            'DOT': 7.25, 'DOT-USD': 7.25,
             // Common individual stocks that might be in portfolios
             'AMD': 145.25, 'INTC': 32.80, 'DIS': 95.40, 'KO': 61.20,
             'PEP': 175.60, 'V': 265.80, 'MA': 420.30, 'PYPL': 62.45

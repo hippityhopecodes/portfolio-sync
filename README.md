@@ -14,14 +14,6 @@ View the live dashboard: [PortfolioSync Dashboard](https://hippityhopecodes.gith
 - Portfolio analytics and charts
 - Dark/light theme support
 
-## Local Development
-
-1. Clone the repository:
-```bash
-git clone https://github.com/hippityhopecodes/portfoliosync.git
-cd portfoliosync
-```
-
 ## Structure
 ```
 portfoliosync/
@@ -83,9 +75,8 @@ python -m http.server 8000 # Serve frontend
 ## API Setup
 ```python
 # Add to .env file:
-FIDELITY_API_KEY="your_key"
-KRAKEN_API_KEY="your_key"
-WEBULL_API_KEY="your_key"
+SHEET_ID="your_google_sheet_id"
+SHEET_NAME="your_main_google_sheet_name"
 ```
 
 ## Tech Stack
@@ -93,7 +84,6 @@ WEBULL_API_KEY="your_key"
 Backend:
 - Python 3.8+
 - FastAPI
-- SQLite/PostgreSQL
 
 Frontend:  
 - HTML/CSS/JavaScript
@@ -101,15 +91,8 @@ Frontend:
 
 ## Security
 - JWT Authentication
-- API Key Encryption
 - Rate Limiting
 - CORS Protection
-
-## Testing
-```bash
-pytest tests/
-npm test
-```
 
 ## Future Enhancements
 - [ ] Mobile app version
@@ -122,6 +105,7 @@ npm test
 ## Acknowledgments
 - FastAPI
 - Chart.js
-- Kraken/Fidelity/Webull APIs
+- Google Sheet API
+- Google Finance
 
 ---

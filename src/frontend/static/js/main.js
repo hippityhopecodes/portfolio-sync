@@ -50,4 +50,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update last updated time
         document.getElementById('last-updated').textContent = new Date().toLocaleString();
     };
+
+    // Fetch and update portfolio data
+    const refreshData = async () => {
+        try {
+            const data = await API.getSummary();
+            updateUI(data);
+        }
+        catch (error) {
+            console.error('Failed to fetch data:', error);
+            alert('Failed to update portfolio data');
+        }
+    };
+
+    // Event listeners
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+        try {
+            await API.refreshPortfolio();
+            await refreshData();
+        }
+        catch (error) {
+            console.error('Failed to refresh portfolio:', error);
+            alert('Failed to refresh portfolio');
+        }
+    });
+
+    document.getElementById('themeSwitch').addEventListener('click', () => {
+        const isDark = document.body.classList.toggle('dark-theme');
+        localStorage.setItem('dark-theme', isDark);
+    });
+
+    // Initial data fetch
+    refreshData();
+
+    // Auto refresh every 5 minutes
+    setInterval(refreshData, 5 * 60 * 1000);
 });

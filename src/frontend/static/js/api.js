@@ -25,25 +25,27 @@ const API = {
             const values = lines[i].split(',').map(val => val.trim().replace(/"/g, ''));
             console.log(`Row ${i}:`, values);
             
-            if (values.length >= 3 && values[0] && values[0] !== 'Roth IRA') { // Skip invalid symbols
-                const symbol = values[0].trim();
-                const shares = parseFloat(values[1]) || 0;
-                const cost_basis = parseFloat(values[2]) || 0;
+            if (values.length >= 4) { // Account,Symbol,Quantity,Cost Basis
+                const account = values[0].trim();
+                const symbol = values[1].trim();
+                const shares = parseFloat(values[2]) || 0;
+                const cost_basis = parseFloat(values[3]) || 0;
                 
-                console.log(`Processing: ${symbol}, shares: ${shares}, cost_basis: ${cost_basis}`);
+                console.log(`Processing: account=${account}, symbol=${symbol}, shares=${shares}, cost_basis=${cost_basis}`);
                 
-                // Skip if symbol is not a valid stock symbol
-                if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol)) {
+                // Skip if symbol is not valid or if it's an account type row
+                if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol) && account !== 'Account') {
                     const position = {
                         symbol: symbol,
                         shares: shares,
                         cost_basis: cost_basis,
-                        current_value: parseFloat(values[3]) || 0
+                        current_value: 0, // Will be calculated with real prices
+                        account: account
                     };
                     console.log('✅ Added position:', position);
                     data.push(position);
                 } else {
-                    console.log('❌ Skipped invalid position:', { symbol, shares, cost_basis, valid: this.isValidSymbol(symbol) });
+                    console.log('❌ Skipped invalid position:', { account, symbol, shares, cost_basis, valid: this.isValidSymbol(symbol) });
                 }
             }
         }
@@ -54,8 +56,8 @@ const API = {
 
     // Check if symbol is valid for price lookup
     isValidSymbol(symbol) {
-        // Skip account types and invalid symbols
-        const invalidSymbols = ['Roth IRA', 'Traditional IRA', 'Cash', 'USD', 'Account', 'Total'];
+        // Skip account types and invalid symbols - allow mutual funds like FSKAX, FTIHX
+        const invalidSymbols = ['Cash', 'USD', 'Account', 'Total', 'CASH'];
         return !invalidSymbols.some(invalid => symbol.toUpperCase().includes(invalid.toUpperCase()));
     },
 
@@ -73,7 +75,10 @@ const API = {
             'NVDA': 950.80, 'AMZN': 155.75, 'META': 485.25, 'NFLX': 580.40,
             'CMA': 47.85, 'JPM': 175.90, 'BAC': 32.45, 'WFC': 45.30,
             'BTC-USD': 67500.00, 'ETH-USD': 3850.00, 'BNB-USD': 615.00,
-            'SPY': 485.20, 'QQQ': 395.75, 'VTI': 245.60, 'IWM': 198.30
+            'SPY': 485.20, 'QQQ': 395.75, 'VTI': 245.60, 'IWM': 198.30,
+            // Fidelity mutual funds
+            'FSKAX': 159.85, 'FTIHX': 15.92, 'FXNAX': 11.45, 'FZROX': 14.25,
+            'FZILX': 12.85, 'FDVV': 35.60, 'FXNAC': 55.40
         };
         
         const price = mockPrices[symbol.toUpperCase()] || mockPrices[symbol] || 100.00;

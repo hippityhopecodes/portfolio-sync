@@ -78,7 +78,7 @@ const API = {
         return !invalidSymbols.some(invalid => symbol.toUpperCase().includes(invalid.toUpperCase()));
     },
 
-    // Get stock price with better fallback
+    // Get stock price with real API calls
     async getStockPrice(symbol) {
         // First check if it's a valid symbol
         if (!this.isValidSymbol(symbol)) {
@@ -86,7 +86,18 @@ const API = {
             return 100.00; // Default price for non-stocks
         }
 
-        // Use mock prices to avoid CORS issues on GitHub Pages
+        // Try to get real prices first, fall back to mock if failed
+        try {
+            const realPrice = await this.getRealStockPrice(symbol);
+            if (realPrice > 0) {
+                console.log(`Real price for ${symbol}: $${realPrice}`);
+                return realPrice;
+            }
+        } catch (error) {
+            console.warn(`Failed to get real price for ${symbol}:`, error.message);
+        }
+
+        // Fallback to mock prices
         const mockPrices = {
             // Major stocks
             'AAPL': 185.50, 'GOOGL': 2725.00, 'MSFT': 385.20, 'TSLA': 245.30,
@@ -113,8 +124,121 @@ const API = {
         };
         
         const price = mockPrices[symbol.toUpperCase()] || mockPrices[symbol] || 100.00;
-        console.log(`Price for ${symbol}: $${price} (mock data)`);
+        console.log(`Mock price for ${symbol}: $${price}`);
         return price;
+    },
+
+    // Get real stock price from financial APIs
+    async getRealStockPrice(symbol) {
+        // Method 1: Try Yahoo Finance via CORS proxy
+        try {
+            const yahooPrice = await this.getYahooFinancePrice(symbol);
+            if (yahooPrice > 0) return yahooPrice;
+        } catch (error) {
+            console.log(`Yahoo Finance failed for ${symbol}:`, error.message);
+        }
+
+        // Method 2: Try free crypto API for crypto symbols
+        if (this.isCryptoSymbol(symbol)) {
+            try {
+                const cryptoPrice = await this.getCryptoPriceFromCoinGecko(symbol);
+                if (cryptoPrice > 0) return cryptoPrice;
+            } catch (error) {
+                console.log(`CoinGecko failed for ${symbol}:`, error.message);
+            }
+        }
+
+        // Method 3: Try Alpha Vantage (you'll need a free API key)
+        // Uncomment and add your API key to use this
+        /*
+        try {
+            const alphaPrice = await this.getAlphaVantagePrice(symbol);
+            if (alphaPrice > 0) return alphaPrice;
+        } catch (error) {
+            console.log(`Alpha Vantage failed for ${symbol}:`, error.message);
+        }
+        */
+
+        throw new Error('All real price sources failed');
+    },
+
+    // Check if symbol is cryptocurrency
+    isCryptoSymbol(symbol) {
+        const cryptoSymbols = ['BTC', 'ETH', 'XRP', 'DOGE', 'BNB', 'ADA', 'SOL', 'DOT'];
+        return cryptoSymbols.includes(symbol.toUpperCase()) || symbol.includes('-USD');
+    },
+
+    // Get crypto prices from CoinGecko (free, no API key needed)
+    async getCryptoPriceFromCoinGecko(symbol) {
+        const cryptoMap = {
+            'BTC': 'bitcoin',
+            'ETH': 'ethereum', 
+            'XRP': 'ripple',
+            'DOGE': 'dogecoin',
+            'BNB': 'binancecoin',
+            'ADA': 'cardano',
+            'SOL': 'solana',
+            'DOT': 'polkadot'
+        };
+
+        const coinId = cryptoMap[symbol.toUpperCase()];
+        if (!coinId) throw new Error(`Unknown crypto symbol: ${symbol}`);
+
+        const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error(`CoinGecko API error: ${response.status}`);
+        
+        const data = await response.json();
+        return data[coinId]?.usd || 0;
+    },
+
+    // Get stock price from Yahoo Finance (may have CORS issues)
+    async getYahooFinancePrice(symbol) {
+        // Using a public CORS proxy - note: not recommended for production
+        const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+        
+        const response = await fetch(proxyUrl + encodeURIComponent(yahooUrl), {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+        
+        const data = await response.json();
+        const quote = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        return quote || 0;
+    },
+
+    // Alpha Vantage API (requires free API key)
+    async getAlphaVantagePrice(symbol) {
+        // You'll need to get a free API key from https://www.alphavantage.co/support/#api-key
+        // and replace 'YOUR_API_KEY' below
+        const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
+        
+        if (apiKey === 'YOUR_API_KEY') {
+            throw new Error('Alpha Vantage API key not configured');
+        }
+
+        const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error(`Alpha Vantage API error: ${response.status}`);
+        
+        const data = await response.json();
+        const price = data['Global Quote']?.['05. price'];
+        return parseFloat(price) || 0;
     },
 
     // Load data from Google Sheets

@@ -4,7 +4,7 @@ Track your investment portfolio across multiple brokers in one dashboard
 
 ## Dashboard
 
-View the live dashboard: [PortfolioSync Dashboard](https://hippityhopecodes.github.io/portfoliosync/)
+View the live dashboard: [PortfolioSync Dashboard](https://hippityhopecodes.github.io/portfolio-sync/)
 
 ## Features
 

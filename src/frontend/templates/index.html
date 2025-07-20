@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- Head which holds meta, link, and title tags-->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/styles.css">
+    <link rel="stylesheet" href="static/css/dark-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>PortfolioSync Dashboard</title>
 </head>
 <body class="dark-theme">
@@ -18,7 +22,43 @@
 
         <!-- Main Content -->
         <main>
+            <!-- Quick Overview Cards-->
+            <section class="summary-cards">
+                <!-- Total Value Card -->
+                <div class="card" id="totalValue">
+                    <h3>Total Value</h3>
+                    <p class="value">$0.00</p>
+                    <p class="change positive">+0.00%</p>
+                </div>
 
+                <!-- Total Cost Card -->
+                <div class="card" id="totalCost">
+                    <h3>Total Cost</h3>
+                    <p class="value">$0.00</p>
+                </div>
+
+                <!-- Total Gain Card -->
+                <div class="card" id="totalGain">
+                    <h3>Total Gain/Loss</h3>
+                    <p class="value">$0.00</p>
+                    <p class="change positive">0.00%</p>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-container">
+                <!-- Portfolio Allocation Chart -->
+                <div class="chart-card">
+                    <h3>Portfolio Allocation</h3>
+                    <canvas id="allocationChart"></canvas>
+                </div>
+
+                <!-- Broker Chart -->
+                <div class="chart-card">
+                    <h3>Broker Distribution</h3>
+                    <canvas id="brokerChart"></canvas>
+                </div>
+            </section>
         </main>
     </div>
 

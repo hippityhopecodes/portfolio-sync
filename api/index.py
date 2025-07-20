@@ -207,10 +207,5 @@ async def refresh_portfolio():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Refresh error: {str(e)}")
 
-# Export for Vercel
-def handler(request, response):
-    """Vercel handler wrapper"""
-    return app(request, response)
-
-# Also export the app directly
-app = app
+# Export for Vercel (this is the correct way for FastAPI on Vercel)
+handler = app

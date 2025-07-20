@@ -38,7 +38,7 @@ const API = {
         catch (error) {
             console.warn('Live API not available, using mock data:', error);
             // Return mock data for GitHub Pages demo
-            return this.MOCK_DATA;
+            return Promise.resolve(this.MOCK_DATA);
         }
     },
 

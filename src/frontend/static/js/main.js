@@ -33,65 +33,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update UI with portfolio data
     const updateUI = (data) => {
-        console.log('Received data:', data); // Debug log
+        console.log('updateUI called with data:', data);
         
         try {
-            // Update summary cards - fixed IDs to match HTML
-            const totalValueElement = document.querySelector('#totalValue .value');
-            const totalCostElement = document.querySelector('#totalCost .value');
-            const totalGainElement = document.querySelector('#totalGain .value');
+            // Simple direct updates without complex selectors
+            const totalValueCard = document.getElementById('totalValue');
+            const totalCostCard = document.getElementById('totalCost');
+            const totalGainCard = document.getElementById('totalGain');
             
-            console.log('Elements found:', { totalValueElement, totalCostElement, totalGainElement }); // Debug log
+            console.log('Found cards:', { totalValueCard, totalCostCard, totalGainCard });
             
-            if (totalValueElement) totalValueElement.textContent = formatCurrency(data.total_value);
-            if (totalCostElement) totalCostElement.textContent = formatCurrency(data.total_cost);
-            if (totalGainElement) totalGainElement.textContent = formatCurrency(data.total_gain_loss);
+            if (totalValueCard) {
+                const valueElement = totalValueCard.querySelector('.value');
+                if (valueElement) {
+                    valueElement.textContent = formatCurrency(data.total_value);
+                    console.log('Updated total value to:', formatCurrency(data.total_value));
+                }
+            }
             
-            // Update gain/loss percentage
-            const gainLossPercent = (data.total_gain_loss / data.total_cost * 100);
-            const gainElement = document.querySelector('#totalGain .change');
-            if (gainElement) {
-                gainElement.textContent = formatPercentage(gainLossPercent);
-                gainElement.className = `change ${gainLossPercent >= 0 ? 'positive' : 'negative'}`;
+            if (totalCostCard) {
+                const valueElement = totalCostCard.querySelector('.value');
+                if (valueElement) {
+                    valueElement.textContent = formatCurrency(data.total_cost);
+                    console.log('Updated total cost to:', formatCurrency(data.total_cost));
+                }
+            }
+            
+            if (totalGainCard) {
+                const valueElement = totalGainCard.querySelector('.value');
+                const changeElement = totalGainCard.querySelector('.change');
+                if (valueElement) {
+                    valueElement.textContent = formatCurrency(data.total_gain_loss);
+                    console.log('Updated total gain to:', formatCurrency(data.total_gain_loss));
+                }
+                if (changeElement) {
+                    const gainLossPercent = (data.total_gain_loss / data.total_cost * 100);
+                    changeElement.textContent = formatPercentage(gainLossPercent);
+                    changeElement.className = `change ${gainLossPercent >= 0 ? 'positive' : 'negative'}`;
+                    console.log('Updated gain percentage to:', formatPercentage(gainLossPercent));
+                }
             }
 
-            // Update broker breakdown - fixed ID to match HTML
+            // Update broker breakdown
             const brokerContainer = document.getElementById('brokerBreakdown');
-            console.log('Broker container found:', brokerContainer); // Debug log
+            console.log('Broker container found:', brokerContainer);
             
-            if (brokerContainer) {
+            if (brokerContainer && data.by_broker) {
                 brokerContainer.innerHTML = ''; // Clear existing content
-
+                
                 Object.entries(data.by_broker).forEach(([broker, info]) => {
                     const gainsLossPercent = (info.gain_loss / info.total_cost * 100);
-                    brokerContainer.innerHTML += `
-                        <div class="card">
-                            <h3>${broker}</h3>
-                            <p class="value">${formatCurrency(info.total_value)}</p>
-                            <p class="change ${gainsLossPercent >= 0 ? 'positive' : 'negative'}">
-                                ${formatCurrency(info.gain_loss)} (${formatPercentage(gainsLossPercent)})
-                            </p>
-                        </div>
+                    const brokerCard = document.createElement('div');
+                    brokerCard.className = 'card';
+                    brokerCard.innerHTML = `
+                        <h3>${broker}</h3>
+                        <p class="value">${formatCurrency(info.total_value)}</p>
+                        <p class="change ${gainsLossPercent >= 0 ? 'positive' : 'negative'}">
+                            ${formatCurrency(info.gain_loss)} (${formatPercentage(gainsLossPercent)})
+                        </p>
                     `;
+                    brokerContainer.appendChild(brokerCard);
                 });
+                console.log('Added broker cards:', Object.keys(data.by_broker));
             }
 
-            // Update charts
-            if (typeof Charts !== 'undefined' && Charts.updateCharts) {
-                Charts.updateCharts(data);
-            }
-
-            // Update last updated time - fixed ID to match HTML
+            // Update last updated time
             const lastUpdatedElement = document.getElementById('lastUpdated');
             if (lastUpdatedElement) {
                 lastUpdatedElement.textContent = new Date().toLocaleString();
+                console.log('Updated last updated time');
             }
             
-            console.log('UI update completed successfully'); // Debug log
+            console.log('UI update completed successfully');
             
         } catch (error) {
-            console.error('Error updating UI:', error);
-            throw error; // Re-throw to be caught by the outer catch
+            console.error('Error in updateUI:', error);
+            throw error;
         }
     };
 
@@ -128,7 +145,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial data fetch
+    console.log('Starting initial data fetch...');
     refreshData();
+
+    // Add a test function to global scope for debugging
+    window.testUpdate = () => {
+        console.log('Manual test triggered');
+        refreshData();
+    };
 
     // Auto refresh every 5 minutes
     setInterval(refreshData, 5 * 60 * 1000);

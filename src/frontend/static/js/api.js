@@ -27,36 +27,14 @@ const API = {
     },
 
     async getSummary() {
-        try {
-            // Try live API first
-            const response = await fetch(`${this.BASE_URL}/portfolio/summary`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch summary');
-            }
-            return await response.json();
-        }
-        catch (error) {
-            console.warn('Live API not available, using mock data:', error);
-            // Return mock data for GitHub Pages demo
-            return Promise.resolve(this.MOCK_DATA);
-        }
+        // For GitHub Pages, always use mock data since there's no backend
+        console.log('API.getSummary called, returning mock data');
+        return this.MOCK_DATA;
     },
 
     async refreshPortfolio() {
-        try {
-            // Try live API first
-            const response = await fetch(`${this.BASE_URL}/portfolio/refresh`, {
-                method: 'POST',
-            });
-            if (!response.ok) {
-                throw new Error('Failed to refresh portfolio');
-            }
-            return await response.json();
-        }
-        catch (error) {
-            console.warn('Live API not available, using mock refresh:', error);
-            // Return success for mock refresh
-            return { status: 'success', message: 'Portfolio refreshed (mock)' };
-        }
+        // For GitHub Pages, simulate a successful refresh
+        console.log('API.refreshPortfolio called, simulating refresh');
+        return { status: 'success', message: 'Portfolio refreshed (mock)' };
     }
 };

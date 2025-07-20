@@ -58,16 +58,33 @@ const API = {
     // Load data from Google Sheets
     async loadSheetData(broker, url) {
         try {
+            console.log(`Loading ${broker} data from: ${url}`);
+            
             const response = await fetch(url, {
-                mode: 'cors'
+                mode: 'cors',
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const csvText = await response.text();
+            console.log(`${broker} CSV data:`, csvText.substring(0, 200) + '...');
+            
+            if (!csvText || csvText.trim().length === 0) {
+                throw new Error('Empty CSV response');
+            }
+            
             const positions = this.parseCSV(csvText);
+            console.log(`${broker} parsed positions:`, positions);
+            
+            if (positions.length === 0) {
+                console.warn(`No positions found for ${broker}`);
+                return [];
+            }
             
             // Get current prices and calculate values
             for (let position of positions) {
@@ -76,11 +93,13 @@ const API = {
                 position.cost_value = position.shares * position.cost_basis;
                 position.gain_loss = position.current_value - position.cost_value;
                 position.broker = broker;
+                
+                console.log(`${broker} - ${position.symbol}: $${position.current_price} x ${position.shares} = $${position.current_value}`);
             }
             
             return positions;
         } catch (error) {
-            console.warn(`Failed to load ${broker} data:`, error);
+            console.error(`Failed to load ${broker} data:`, error);
             return [];
         }
     },
@@ -107,6 +126,12 @@ const API = {
                 gain_loss: 0.00
             }
         },
+        positions: [
+            {"symbol": "AAPL", "shares": 10, "cost_basis": 150.00, "current_price": 175.00, "broker": "Fidelity", "current_value": 1750.00, "cost_value": 1500.00, "gain_loss": 250.00},
+            {"symbol": "GOOGL", "shares": 2, "cost_basis": 2400.00, "current_price": 2600.00, "broker": "Webull", "current_value": 5200.00, "cost_value": 4800.00, "gain_loss": 400.00},
+            {"symbol": "MSFT", "shares": 5, "cost_basis": 300.00, "current_price": 320.00, "broker": "Fidelity", "current_value": 1600.00, "cost_value": 1500.00, "gain_loss": 100.00},
+            {"symbol": "BTC-USD", "shares": 0.5, "cost_basis": 45000.00, "current_price": 47000.00, "broker": "Kraken", "current_value": 23500.00, "cost_value": 22500.00, "gain_loss": 1000.00}
+        ],
         last_updated: new Date().toISOString()
     },
 
@@ -126,7 +151,11 @@ const API = {
             
             if (allPositions.length === 0) {
                 console.warn('No data loaded from Google Sheets, using mock data');
-                return this.MOCK_DATA;
+                return {
+                    ...this.MOCK_DATA,
+                    data_source: 'Mock Data (Google Sheets not accessible)',
+                    note: 'Using mock data - Google Sheets may not be public or accessible'
+                };
             }
             
             // Calculate totals by broker
@@ -164,7 +193,11 @@ const API = {
             
         } catch (error) {
             console.warn('Failed to load real data, using mock data:', error);
-            return this.MOCK_DATA;
+            return {
+                ...this.MOCK_DATA,
+                data_source: 'Mock Data (Error occurred)',
+                note: `Error loading real data: ${error.message}`
+            };
         }
     },
 

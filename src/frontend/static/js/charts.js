@@ -16,6 +16,40 @@ const Charts = {
         }).format(value);
     },
 
+    // Generate distinct colors for portfolio assets
+    getColorPalette(count) {
+        const colors = [
+            '#FF6384',  // Red/Pink - FSKAX
+            '#36A2EB',  // Blue - FTIHX  
+            '#FFCE56',  // Yellow - NVDA
+            '#4BC0C0',  // Teal - BTC
+            '#9966FF',  // Purple - ETH
+            '#FF9F40',  // Orange - XRP
+            '#FF6384',  // Red variant
+            '#C9CBCF',  // Gray
+            '#4BC0C0',  // Teal variant
+            '#FF8C94',  // Light red
+            '#A8E6CF', // Light green
+            '#FFD93D', // Bright yellow
+            '#6BCF7F', // Green
+            '#FF6B6B', // Coral
+            '#4ECDC4', // Turquoise
+            '#45B7D1', // Sky blue
+            '#96CEB4', // Mint
+            '#FECA57', // Gold
+            '#48CAE4', // Light blue
+            '#F38BA8'  // Pink
+        ];
+        
+        // If we need more colors than predefined, generate them
+        while (colors.length < count) {
+            const hue = (colors.length * 137.508) % 360; // Golden angle approximation
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+        
+        return colors.slice(0, count);
+    },
+
     initializeCharts() {
         console.log('Initializing charts...');
         
@@ -47,13 +81,7 @@ const Charts = {
                     labels: [],
                     datasets: [{
                         data: [],
-                        backgroundColor: [
-                            '#FF6384',
-                            '#36A2EB',
-                            '#FFCE56',
-                            '#4BC0C0',
-                            '#9966FF'
-                        ]
+                        backgroundColor: [] // Will be set dynamically in updateCharts
                     }]
                 },
                 options: {
@@ -127,8 +155,12 @@ const Charts = {
             console.log('Updating allocation chart:', symbols, values);
             
             if (symbols.length > 0) {
+                // Generate distinct colors for each position
+                const colors = this.getColorPalette(symbols.length);
+                
                 this.allocationChart.data.labels = symbols;
                 this.allocationChart.data.datasets[0].data = values;
+                this.allocationChart.data.datasets[0].backgroundColor = colors;
                 this.allocationChart.update();
             }
         } else if (this.allocationChart && data.by_broker) {
@@ -138,8 +170,12 @@ const Charts = {
             const brokerNames = Object.keys(brokerData);
             const brokerValues = Object.values(brokerData).map(broker => broker.total_value);
             
+            // Generate colors for broker chart too
+            const colors = this.getColorPalette(brokerNames.length);
+            
             this.allocationChart.data.labels = brokerNames;
             this.allocationChart.data.datasets[0].data = brokerValues;
+            this.allocationChart.data.datasets[0].backgroundColor = colors;
             this.allocationChart.update();
         }
         

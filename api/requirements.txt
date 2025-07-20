@@ -1,6 +1,5 @@
-# Lightweight dependencies for serverless deployment
+# Minimal dependencies for Vercel serverless functions
 fastapi==0.103.1
-uvicorn==0.23.2
 python-dotenv==1.0.0
 google-api-python-client==2.97.0
 google-auth==2.23.0

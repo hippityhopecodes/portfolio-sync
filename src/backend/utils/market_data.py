@@ -1,10 +1,16 @@
-import yfinance as yf
 import requests
 from functools import lru_cache
 from typing import List, Dict
 from datetime import datetime
 import time
 from ..config import settings
+
+# Optional yfinance import for local development
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    YFINANCE_AVAILABLE = False
 
 class MarketDataError(Exception):
     pass
@@ -66,29 +72,32 @@ class MarketDataService:
             except Exception as e:
                 print(f"IEX API failed for {symbol}: {e}")
             
-            # Method 4: Try yfinance with session
-            try:
-                print(f"Trying yfinance with session for {symbol}")
-                ticker = yf.Ticker(symbol, session=self.session)
-                hist = ticker.history(period="1d", interval="1d")
-                if not hist.empty:
-                    price = float(hist['Close'].iloc[-1])
-                    print(f"yfinance successful for {symbol}: ${price}")
-                    return price
-            except Exception as e:
-                print(f"yfinance failed for {symbol}: {e}")
-            
-            # Method 3: Try alternative period
-            try:
-                print(f"Trying yfinance alternative period for {symbol}")
-                ticker = yf.Ticker(symbol, session=self.session)
-                hist = ticker.history(period="5d")
-                if not hist.empty:
-                    price = float(hist['Close'].iloc[-1])
-                    print(f"yfinance (5d) successful for {symbol}: ${price}")
-                    return price
-            except Exception as e:
-                print(f"yfinance (5d) failed for {symbol}: {e}")
+            # Method 4: Try yfinance with session (if available)
+            if YFINANCE_AVAILABLE:
+                try:
+                    print(f"Trying yfinance with session for {symbol}")
+                    ticker = yf.Ticker(symbol, session=self.session)
+                    hist = ticker.history(period="1d", interval="1d")
+                    if not hist.empty:
+                        price = float(hist['Close'].iloc[-1])
+                        print(f"yfinance successful for {symbol}: ${price}")
+                        return price
+                except Exception as e:
+                    print(f"yfinance failed for {symbol}: {e}")
+                
+                # Method 5: Try alternative period
+                try:
+                    print(f"Trying yfinance alternative period for {symbol}")
+                    ticker = yf.Ticker(symbol, session=self.session)
+                    hist = ticker.history(period="5d")
+                    if not hist.empty:
+                        price = float(hist['Close'].iloc[-1])
+                        print(f"yfinance (5d) successful for {symbol}: ${price}")
+                        return price
+                except Exception as e:
+                    print(f"yfinance (5d) failed for {symbol}: {e}")
+            else:
+                print(f"yfinance not available, skipping for {symbol}")
             
             raise MarketDataError(f"All methods failed for {symbol}")
             

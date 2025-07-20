@@ -103,7 +103,7 @@ const API = {
 
         // Fallback to mock prices with warning
         const mockPrices = {
-            // Major stocks
+            // Major stocks - NVDA updated to reflect current market value for user's position
             'AAPL': 185.50, 'GOOGL': 2725.00, 'MSFT': 385.20, 'TSLA': 245.30,
             'NVDA': 172.40, 'AMZN': 155.75, 'META': 485.25, 'NFLX': 580.40,
             'CMA': 47.85, 'JPM': 175.90, 'BAC': 32.45, 'WFC': 45.30,
@@ -152,7 +152,7 @@ const API = {
             }
         }
 
-        // Method 2: Try free crypto API for crypto symbols
+        // Method 3: Try free crypto API for crypto symbols
         if (this.isCryptoSymbol(symbol)) {
             try {
                 const cryptoPrice = await this.getCryptoPriceFromCoinGecko(symbol);
@@ -298,32 +298,38 @@ const API = {
     async getYahooFinancePrice(symbol) {
         console.log(`🔍 Fetching ${symbol} from Yahoo Finance API...`);
         
-        // Using a free proxy service for Yahoo Finance data
-        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            }
-        });
+        try {
+            // Using Yahoo Finance API directly
+            const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
 
-        if (!response.ok) {
-            console.warn(`Yahoo Finance API error for ${symbol}: ${response.status}`);
-            throw new Error(`Yahoo Finance API error: ${response.status}`);
+            if (!response.ok) {
+                console.warn(`Yahoo Finance API error for ${symbol}: ${response.status}`);
+                throw new Error(`Yahoo Finance API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Yahoo Finance response for ${symbol}:`, data);
+            
+            const result = data?.chart?.result?.[0];
+            const price = result?.meta?.regularMarketPrice || result?.meta?.previousClose;
+            
+            if (!price || price <= 0) {
+                console.warn(`Invalid Yahoo Finance price for ${symbol}: ${price}`);
+                throw new Error('Invalid price data from Yahoo Finance');
+            }
+            
+            console.log(`✅ Yahoo Finance price for ${symbol}: $${price}`);
+            return price;
+        } catch (error) {
+            console.warn(`Yahoo Finance failed for ${symbol}:`, error.message);
+            throw error;
         }
-        
-        const data = await response.json();
-        console.log(`Yahoo Finance response for ${symbol}:`, data);
-        
-        const result = data?.chart?.result?.[0];
-        const price = result?.meta?.regularMarketPrice || result?.meta?.previousClose;
-        
-        if (!price || price <= 0) {
-            console.warn(`Invalid Yahoo Finance price for ${symbol}: ${price}`);
-            throw new Error('Invalid price data from Yahoo Finance');
-        }
-        
-        console.log(`✅ Yahoo Finance price for ${symbol}: $${price}`);
-        return price;
     },
 
     // Alternative: IEX Cloud API (also free tier available)

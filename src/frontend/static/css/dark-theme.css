@@ -1,0 +1,18 @@
+.dark-theme {
+    --primary-color: #64B5F6;
+    --success-color: #81C784;
+    --danger-color: #E57373;
+    --background-color: #121212;
+    --card-background: #1E1E1E;
+    --text-color: #FFFFFF;
+    --border-color: #333333;
+}
+
+.dark-theme .card {
+    background-color: var(--card-background);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.dark-theme .btn {
+    background-color: var(--primary-color);
+}

@@ -1,11 +1,8 @@
 # Google Sheets authentication
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from typing import List
-import os.path
-import pickle
+import json
 from ..config import settings
 
 # Google Sheets client for interacting with Google Sheets API
@@ -17,21 +14,18 @@ class GoogleSheetsClient:
         self.creds = self.get_credentials()
         self.service = build("sheets", "v4", credentials=self.creds)
 
-    # Gets credentials for Google Sheets API
+    # Gets credentials for Google Sheets API using service account
     def get_credentials(self) -> Credentials:
-        creds = None
-
-        # If a path exists
-        if os.path.exists(settings.token_path):
-            with open(settings.token_path, 'rb') as token:
-                creds = pickle.load(token)
-        # If no valid credentials, request new ones
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(settings.credentials_path, self.SCOPES)
-            creds = flow.run_local_server(port = 0)
-        with open(settings.token_path, 'wb') as token:
-            pickle.dump(creds, token)
-
+        # Load service account credentials from JSON file
+        with open(settings.credentials_path, 'r') as f:
+            service_account_info = json.load(f)
+        
+        # Create credentials from service account info
+        creds = Credentials.from_service_account_info(
+            service_account_info, 
+            scopes=self.SCOPES
+        )
+        
         return creds
 
     # Reads a range of data from a Google Sheet

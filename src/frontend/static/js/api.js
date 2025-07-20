@@ -27,14 +27,40 @@ const API = {
     },
 
     async getSummary() {
-        // For GitHub Pages, always use mock data since there's no backend
-        console.log('API.getSummary called, returning mock data');
-        return this.MOCK_DATA;
+        try {
+            // Try live API first (for when backend is running)
+            const response = await fetch(`${this.BASE_URL}/portfolio/summary`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            console.log('Using live API data');
+            return data;
+        }
+        catch (error) {
+            console.warn('Live API not available, using mock data:', error.message);
+            // Return mock data for GitHub Pages demo
+            return this.MOCK_DATA;
+        }
     },
 
     async refreshPortfolio() {
-        // For GitHub Pages, simulate a successful refresh
-        console.log('API.refreshPortfolio called, simulating refresh');
-        return { status: 'success', message: 'Portfolio refreshed (mock)' };
+        try {
+            // Try live API first (for when backend is running)
+            const response = await fetch(`${this.BASE_URL}/portfolio/refresh`, {
+                method: 'POST',
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            console.log('Portfolio refreshed via live API');
+            return data;
+        }
+        catch (error) {
+            console.warn('Live API not available for refresh:', error.message);
+            // Return success for mock refresh
+            return { status: 'success', message: 'Portfolio refreshed (mock)' };
+        }
     }
 };

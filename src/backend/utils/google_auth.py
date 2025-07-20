@@ -3,6 +3,8 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from typing import List
 import json
+import base64
+import os
 from ..config import settings
 
 # Google Sheets client for interacting with Google Sheets API
@@ -16,9 +18,19 @@ class GoogleSheetsClient:
 
     # Gets credentials for Google Sheets API using service account
     def get_credentials(self) -> Credentials:
-        # Load service account credentials from JSON file
-        with open(settings.credentials_path, 'r') as f:
-            service_account_info = json.load(f)
+        # Check if we're in a serverless environment (Vercel)
+        if os.getenv('GOOGLE_CREDENTIALS_BASE64'):
+            # Decode base64 credentials for serverless deployment
+            credentials_base64 = os.getenv('GOOGLE_CREDENTIALS_BASE64')
+            credentials_json = base64.b64decode(credentials_base64).decode('utf-8')
+            service_account_info = json.loads(credentials_json)
+        elif os.getenv('GOOGLE_CREDENTIALS'):
+            # Handle direct JSON string (alternative method)
+            service_account_info = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        else:
+            # Local development - load from file
+            with open(settings.credentials_path, 'r') as f:
+                service_account_info = json.load(f)
         
         # Create credentials from service account info
         creds = Credentials.from_service_account_info(

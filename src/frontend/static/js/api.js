@@ -150,6 +150,13 @@ const API = {
                 if (cryptoPrice > 0) return cryptoPrice;
             } catch (error) {
                 console.log(`CoinGecko failed for ${symbol}:`, error.message);
+                // Try alternative crypto API
+                try {
+                    const altCryptoPrice = await this.getCryptoAlternativePrice(symbol);
+                    if (altCryptoPrice > 0) return altCryptoPrice;
+                } catch (altError) {
+                    console.log(`Alternative crypto API failed for ${symbol}:`, altError.message);
+                }
             }
         }
 
@@ -189,6 +196,8 @@ const API = {
         const coinId = cryptoMap[symbol.toUpperCase()];
         if (!coinId) throw new Error(`Unknown crypto symbol: ${symbol}`);
 
+        console.log(`🔍 Fetching ${symbol} price from CoinGecko (${coinId})...`);
+
         const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`, {
             method: 'GET',
             headers: {
@@ -199,7 +208,49 @@ const API = {
         if (!response.ok) throw new Error(`CoinGecko API error: ${response.status}`);
         
         const data = await response.json();
-        return data[coinId]?.usd || 0;
+        console.log(`CoinGecko response for ${symbol}:`, data);
+        
+        const price = data[coinId]?.usd;
+        if (!price || price <= 0) {
+            throw new Error(`Invalid price data for ${symbol}: ${price}`);
+        }
+        
+        console.log(`✅ CoinGecko price for ${symbol}: $${price}`);
+        return price;
+    },
+
+    // Alternative crypto price source (CoinCap API)
+    async getCryptoAlternativePrice(symbol) {
+        const cryptoMap = {
+            'BTC': 'bitcoin',
+            'ETH': 'ethereum', 
+            'XRP': 'xrp',
+            'DOGE': 'dogecoin'
+        };
+
+        const assetId = cryptoMap[symbol.toUpperCase()];
+        if (!assetId) throw new Error(`Unsupported crypto for alternative API: ${symbol}`);
+
+        console.log(`🔍 Trying CoinCap API for ${symbol} (${assetId})...`);
+
+        const response = await fetch(`https://api.coincap.io/v2/assets/${assetId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error(`CoinCap API error: ${response.status}`);
+        
+        const data = await response.json();
+        const price = parseFloat(data.data?.priceUsd);
+        
+        if (!price || price <= 0) {
+            throw new Error(`Invalid price from CoinCap for ${symbol}: ${price}`);
+        }
+        
+        console.log(`✅ CoinCap price for ${symbol}: $${price}`);
+        return price;
     },
 
     // Get stock price from Finnhub (free tier, CORS-enabled)

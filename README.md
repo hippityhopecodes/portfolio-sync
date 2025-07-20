@@ -4,7 +4,7 @@ A real-time portfolio tracking application that aggregates investment data from 
 
 ## 🚀 Live Demo
 
-Visit the live application: [https://hippityhopecodes.github.io/portfolio-sync/src/frontend/](https://hippityhopecodes.github.io/portfolio-sync/src/frontend/)
+Visit the live application: [https://hippityhopecodes.github.io/portfolio-sync/](https://hippityhopecodes.github.io/portfolio-sync/)
 
 ## ✨ Features
 

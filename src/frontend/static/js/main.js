@@ -106,6 +106,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             console.log('UI update completed successfully');
             
+            // Update charts if Charts module is available
+            if (typeof Charts !== 'undefined' && Charts.updateCharts) {
+                try {
+                    Charts.updateCharts(data);
+                    console.log('Charts updated successfully');
+                } catch (error) {
+                    console.error('Failed to update charts:', error);
+                }
+            } else {
+                console.warn('Charts module not available for updates');
+            }
+            
         } catch (error) {
             console.error('Error in updateUI:', error);
             throw error;

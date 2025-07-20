@@ -115,8 +115,44 @@ class PortfolioTracker:
             "total_cost": sum(p.quantity * p.cost_basis for p in self.positions),
             "total_gain_loss": sum(p.gain_loss or 0 for p in self.positions),
             "by_broker": self._get_broker_summary(),
+            "positions": self._get_positions_summary(),
             "last_updated": datetime.now().isoformat()
         }
+    
+    def _get_positions_summary(self) -> List[Dict]:
+        """Get individual position data for allocation chart"""
+        positions_data = []
+        
+        # Group positions by symbol to handle duplicates across brokers
+        symbol_totals = {}
+        
+        for position in self.positions:
+            symbol = position.symbol
+            market_value = position.market_value or 0
+            total_cost = position.quantity * position.cost_basis
+            
+            if symbol in symbol_totals:
+                symbol_totals[symbol]['market_value'] += market_value
+                symbol_totals[symbol]['total_cost'] += total_cost
+                symbol_totals[symbol]['quantity'] += position.quantity
+            else:
+                symbol_totals[symbol] = {
+                    'symbol': symbol,
+                    'market_value': market_value,
+                    'total_cost': total_cost,
+                    'quantity': position.quantity,
+                    'current_price': position.current_value
+                }
+        
+        # Convert to list and calculate gain/loss
+        for symbol_data in symbol_totals.values():
+            symbol_data['gain_loss'] = symbol_data['market_value'] - symbol_data['total_cost']
+            positions_data.append(symbol_data)
+        
+        # Sort by market value (largest first)
+        positions_data.sort(key=lambda x: x['market_value'], reverse=True)
+        
+        return positions_data
 
     def _get_broker_summary(self) -> Dict:
         summary = {broker.value: {"total_cost": 0, "total_value": 0, "gain_loss": 0} 

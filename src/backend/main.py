@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from .api.portfolio_tracker import PortfolioTracker
 from .config import settings
+import os
 
 # Initialize FastAPI app
 app = FastAPI(title="PortfolioSync")
@@ -14,6 +17,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files - go up two levels from src/backend to reach src/frontend
+static_path = os.path.join(os.path.dirname(__file__), "..", "..", "src", "frontend", "static")
+app.mount("/src/frontend/static", StaticFiles(directory=static_path), name="static")
+
+# Serve the main HTML file at root (the one in the project root)
+@app.get("/")
+async def read_index():
+    index_path = os.path.join(os.path.dirname(__file__), "..", "..", "index.html")
+    return FileResponse(index_path)
 
 # Initialize portfolio tracker
 portfolio_tracker = PortfolioTracker()

@@ -30,38 +30,39 @@ const API = {
             const values = lines[i].split(',').map(val => val.trim().replace(/"/g, ''));
             console.log(`Row ${i}:`, values);
             
-            let account, symbol, shares, cost_basis;
+            let account, symbol, shares, totalCostBasis, cost_basis;
             
             if (hasAccountColumn && values.length >= 4) {
                 // Fidelity format: Account,Symbol,Quantity,Cost Basis
-                account = values[0].trim();
+                account = values[0].trim(); // Roth IRA, CMA, 401k, etc.
                 symbol = values[1].trim();
                 shares = parseFloat(values[2]) || 0;
-                const totalCostBasis = parseFloat(values[3]) || 0;
-                cost_basis = shares > 0 ? totalCostBasis / shares : 0; // Convert total cost to price per share
-                console.log(`Using Fidelity format: account=${account}, symbol=${symbol}, shares=${shares}, totalCost=${totalCostBasis}, pricePerShare=${cost_basis.toFixed(4)}`);
+                totalCostBasis = parseFloat(values[3]) || 0;
+                cost_basis = shares > 0 ? totalCostBasis / shares : 0;
+                console.log(`Using Fidelity format: account=${account}, symbol=${symbol}, shares=${shares}, totalCost=${totalCostBasis}, costPerShare=${cost_basis.toFixed(4)}`);
             } else if (!hasAccountColumn && values.length >= 3) {
                 // Webull/Kraken format: Symbol,Quantity,Cost Basis
-                account = 'Trading'; // Default account name
+                account = 'Trading'; // Default account name for Webull/Kraken
                 symbol = values[0].trim();
                 shares = parseFloat(values[1]) || 0;
-                const totalCostBasis = parseFloat(values[2]) || 0;
-                cost_basis = shares > 0 ? totalCostBasis / shares : 0; // Convert total cost to price per share
-                console.log(`Using Webull/Kraken format: account=${account}, symbol=${symbol}, shares=${shares}, totalCost=${totalCostBasis}, pricePerShare=${cost_basis.toFixed(4)}`);
+                totalCostBasis = parseFloat(values[2]) || 0;
+                cost_basis = shares > 0 ? totalCostBasis / shares : 0;
+                console.log(`Using Webull/Kraken format: symbol=${symbol}, shares=${shares}, totalCost=${totalCostBasis}, costPerShare=${cost_basis.toFixed(4)}`);
             } else {
                 console.log(`❌ Skipping row ${i}: insufficient columns (${values.length} columns)`);
                 continue;
             }
             
-            // Skip if symbol is not valid or if it's an account type row
+            // Skip if symbol is not valid or if it's an account header row
             if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol) && account !== 'Account') {
                 const position = {
                     symbol: symbol,
                     shares: shares,
-                    cost_basis: cost_basis, // Price per share
-                    total_cost_basis: shares * cost_basis, // Total amount paid
-                    current_value: 0, // Will be calculated with real prices
-                    account: account
+                    cost_basis: cost_basis, // Price per share when purchased
+                    total_cost_basis: totalCostBasis, // Total amount paid (preserve original)
+                    current_value: 0, // Will be calculated with live market prices
+                    account: account, // Roth IRA, CMA, 401k for Fidelity; Trading for others
+                    broker: broker // Will be set in loadSheetData
                 };
                 console.log('✅ Added position:', position);
                 data.push(position);
@@ -93,14 +94,14 @@ const API = {
         try {
             const realPrice = await this.getRealStockPrice(symbol);
             if (realPrice > 0) {
-                console.log(`Real price for ${symbol}: $${realPrice}`);
+                console.log(`💰 Real price for ${symbol}: $${realPrice}`);
                 return realPrice;
             }
         } catch (error) {
-            console.warn(`Failed to get real price for ${symbol}:`, error.message);
+            console.warn(`⚠️ Failed to get real price for ${symbol}:`, error.message);
         }
 
-        // Fallback to mock prices
+        // Fallback to mock prices with warning
         const mockPrices = {
             // Major stocks
             'AAPL': 185.50, 'GOOGL': 2725.00, 'MSFT': 385.20, 'TSLA': 245.30,
@@ -112,7 +113,7 @@ const API = {
             // Fidelity mutual funds
             'FSKAX': 159.85, 'FTIHX': 15.92, 'FXNAX': 11.45, 'FZROX': 14.25,
             'FZILX': 12.85, 'FDVV': 35.60, 'FXNAC': 55.40, 'FNILX': 58.75,
-            // Crypto (both formats: BTC and BTC-USD)
+            // Crypto (live market prices - will be fetched from APIs)
             'BTC': 67500.00, 'BTC-USD': 67500.00,
             'ETH': 3850.00, 'ETH-USD': 3850.00,
             'XRP': 0.62, 'XRP-USD': 0.62,
@@ -127,7 +128,7 @@ const API = {
         };
         
         const price = mockPrices[symbol.toUpperCase()] || mockPrices[symbol] || 100.00;
-        console.log(`Mock price for ${symbol}: $${price}`);
+        console.log(`📊 Mock price for ${symbol}: $${price} (real API failed)`);
         return price;
     },
 
@@ -358,15 +359,17 @@ const API = {
                 return [];
             }
             
-            // Get current prices and calculate values
+            // Get current prices and calculate values using live market data
             for (let position of positions) {
+                // Always fetch current market price for real-time portfolio tracking
                 position.current_price = await this.getStockPrice(position.symbol);
                 position.current_value = position.shares * position.current_price;
-                position.cost_value = position.total_cost_basis || (position.shares * position.cost_basis);
+                position.cost_value = position.total_cost_basis; // Use the actual total cost from sheet
                 position.gain_loss = position.current_value - position.cost_value;
+                position.gain_loss_percentage = position.cost_value > 0 ? ((position.gain_loss / position.cost_value) * 100) : 0;
                 position.broker = broker;
                 
-                console.log(`${broker} - ${position.symbol}: ${position.shares} shares @ $${position.current_price} = $${position.current_value.toFixed(2)} (cost: $${position.cost_value.toFixed(2)}, gain/loss: $${position.gain_loss.toFixed(2)})`);
+                console.log(`${broker} - ${position.symbol} (${position.account}): ${position.shares} shares @ $${position.current_price.toFixed(2)} = $${position.current_value.toFixed(2)} (cost: $${position.cost_value.toFixed(2)}, gain/loss: $${position.gain_loss.toFixed(2)}, ${position.gain_loss_percentage.toFixed(2)}%)`);
             }
             
             return positions;

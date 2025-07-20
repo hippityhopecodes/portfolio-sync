@@ -62,7 +62,7 @@ const API = {
                     total_cost_basis: totalCostBasis, // Total amount paid (preserve original)
                     current_value: 0, // Will be calculated with live market prices
                     account: account, // Roth IRA, CMA, 401k for Fidelity; Trading for others
-                    broker: broker // Will be set in loadSheetData
+                    broker: null // Will be set in loadSheetData after parsing
                 };
                 console.log('✅ Added position:', position);
                 data.push(position);

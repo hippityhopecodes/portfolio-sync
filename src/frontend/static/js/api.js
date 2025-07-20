@@ -2,35 +2,53 @@ const API = {
     // Google Sheets configuration
     SHEET_ID: '1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0',
     
-    // Sheet ranges as CSV exports (using correct GIDs)
+    // Sheet ranges as CSV exports (using correct GIDs from user)
     SHEET_URLS: {
         fidelity: 'https://docs.google.com/spreadsheets/d/1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0/export?format=csv&gid=0',
-        webull: 'https://docs.google.com/spreadsheets/d/1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0/export?format=csv&gid=1804572085',
-        kraken: 'https://docs.google.com/spreadsheets/d/1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0/export?format=csv&gid=494706445'
+        webull: 'https://docs.google.com/spreadsheets/d/1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0/export?format=csv&gid=1045159326',
+        kraken: 'https://docs.google.com/spreadsheets/d/1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0/export?format=csv&gid=606581791'
     },
 
     // Parse CSV data
     parseCSV(csvText) {
+        console.log('🔍 Parsing CSV, length:', csvText?.length, 'first 200 chars:', csvText?.substring(0, 200));
+        
         const lines = csvText.trim().split('\n');
+        console.log('📊 CSV has', lines.length, 'lines');
+        
+        if (lines.length > 0) {
+            console.log('📋 Header line:', lines[0]);
+        }
+        
         const data = [];
         for (let i = 1; i < lines.length; i++) { // Skip header
             const values = lines[i].split(',').map(val => val.trim().replace(/"/g, ''));
+            console.log(`Row ${i}:`, values);
+            
             if (values.length >= 3 && values[0] && values[0] !== 'Roth IRA') { // Skip invalid symbols
                 const symbol = values[0].trim();
                 const shares = parseFloat(values[1]) || 0;
                 const cost_basis = parseFloat(values[2]) || 0;
                 
+                console.log(`Processing: ${symbol}, shares: ${shares}, cost_basis: ${cost_basis}`);
+                
                 // Skip if symbol is not a valid stock symbol
                 if (symbol && shares > 0 && cost_basis > 0 && this.isValidSymbol(symbol)) {
-                    data.push({
+                    const position = {
                         symbol: symbol,
                         shares: shares,
                         cost_basis: cost_basis,
                         current_value: parseFloat(values[3]) || 0
-                    });
+                    };
+                    console.log('✅ Added position:', position);
+                    data.push(position);
+                } else {
+                    console.log('❌ Skipped invalid position:', { symbol, shares, cost_basis, valid: this.isValidSymbol(symbol) });
                 }
             }
         }
+        
+        console.log('✅ Parsed', data.length, 'valid positions total');
         return data;
     },
 
@@ -158,6 +176,20 @@ const API = {
         try {
             console.log('Loading real portfolio data from Google Sheets...');
             
+            // First, let's try to load just the main sheet to see what we get
+            const response = await fetch(this.SHEET_URLS.fidelity, { mode: 'cors' });
+            if (!response.ok) {
+                console.warn('Main sheet not accessible, using mock data');
+                return {
+                    ...this.MOCK_DATA,
+                    data_source: 'Mock Data (Google Sheets not accessible)',
+                    note: 'Please make sure your Google Sheet is public'
+                };
+            }
+            
+            const csvText = await response.text();
+            console.log('Main sheet CSV:', csvText.substring(0, 300));
+            
             // Load data from all sheets in parallel
             const [fidelityData, webullData, krakenData] = await Promise.all([
                 this.loadSheetData('Fidelity', this.SHEET_URLS.fidelity),
@@ -168,12 +200,14 @@ const API = {
             // Combine all positions
             const allPositions = [...fidelityData, ...webullData, ...krakenData];
             
+            console.log('All positions loaded:', allPositions);
+            
             if (allPositions.length === 0) {
-                console.warn('No data loaded from Google Sheets, using mock data');
+                console.warn('No valid positions found, using enhanced mock data');
                 return {
                     ...this.MOCK_DATA,
-                    data_source: 'Mock Data (Google Sheets not accessible)',
-                    note: 'Using mock data - Google Sheets may not be public or accessible'
+                    data_source: 'Enhanced Mock Data',
+                    note: 'No valid stock positions found in sheets'
                 };
             }
             
@@ -184,8 +218,8 @@ const API = {
             
             for (const broker of ['Fidelity', 'Webull', 'Kraken']) {
                 const brokerPositions = allPositions.filter(p => p.broker === broker);
-                const broker_value = brokerPositions.reduce((sum, p) => sum + p.current_value, 0);
-                const broker_cost = brokerPositions.reduce((sum, p) => sum + p.cost_value, 0);
+                const broker_value = brokerPositions.reduce((sum, p) => sum + (p.current_value || 0), 0);
+                const broker_cost = brokerPositions.reduce((sum, p) => sum + (p.cost_value || 0), 0);
                 
                 by_broker[broker] = {
                     total_cost: broker_cost,

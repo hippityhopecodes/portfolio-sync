@@ -108,20 +108,22 @@ const Charts = {
         }
 
         // Update allocation chart using individual positions
-        if (this.allocationChart && data.positions) {
+        if (this.allocationChart && data.positions && data.positions.length > 0) {
             const positions = data.positions;
             
             // Filter out positions with zero or very small values
-            const significantPositions = positions.filter(p => p.market_value > 1);
+            const significantPositions = positions.filter(p => (p.current_value || p.market_value) > 1);
             
             const symbols = significantPositions.map(p => p.symbol);
-            const values = significantPositions.map(p => p.market_value);
+            const values = significantPositions.map(p => p.current_value || p.market_value || 0);
             
             console.log('Updating allocation chart:', symbols, values);
             
-            this.allocationChart.data.labels = symbols;
-            this.allocationChart.data.datasets[0].data = values;
-            this.allocationChart.update();
+            if (symbols.length > 0) {
+                this.allocationChart.data.labels = symbols;
+                this.allocationChart.data.datasets[0].data = values;
+                this.allocationChart.update();
+            }
         } else if (this.allocationChart && data.by_broker) {
             // Fallback to broker data if positions not available
             console.log('Using broker data as fallback for allocation chart');

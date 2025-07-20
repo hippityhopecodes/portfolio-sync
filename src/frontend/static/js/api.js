@@ -134,8 +134,24 @@ const API = {
 
     // Get real stock price from financial APIs
     async getRealStockPrice(symbol) {
-        // Method 1: Try Finnhub API for stocks (free tier, CORS enabled)
+        // Method 1: Try Google Finance API (free, often more CORS-friendly)
         if (!this.isCryptoSymbol(symbol)) {
+            try {
+                const googlePrice = await this.getGoogleFinancePrice(symbol);
+                if (googlePrice > 0) return googlePrice;
+            } catch (error) {
+                console.log(`Financial API failed for ${symbol}:`, error.message);
+            }
+
+            // Method 2: Try Twelvedata API (free tier, good CORS support)
+            try {
+                const twelveDataPrice = await this.getTwelveDataPrice(symbol);
+                if (twelveDataPrice > 0) return twelveDataPrice;
+            } catch (error) {
+                console.log(`Twelvedata failed for ${symbol}:`, error.message);
+            }
+
+            // Method 3: Try Finnhub API for stocks (free tier, CORS enabled)
             try {
                 const finnhubPrice = await this.getFinnhubPrice(symbol);
                 if (finnhubPrice > 0) return finnhubPrice;
@@ -143,16 +159,32 @@ const API = {
                 console.log(`Finnhub failed for ${symbol}:`, error.message);
             }
 
-            // Method 2: Try Yahoo Finance alternative API
+            // Method 4: Try CORS proxy with Yahoo Finance
             try {
-                const yahooPrice = await this.getYahooFinancePrice(symbol);
-                if (yahooPrice > 0) return yahooPrice;
+                const proxyYahooPrice = await this.getYahooFinanceProxyPrice(symbol);
+                if (proxyYahooPrice > 0) return proxyYahooPrice;
             } catch (error) {
-                console.log(`Yahoo Finance failed for ${symbol}:`, error.message);
+                console.log(`Yahoo Finance (proxy) failed for ${symbol}:`, error.message);
+            }
+
+            // Method 5: Try Alpha Vantage if configured
+            try {
+                const alphaPrice = await this.getAlphaVantagePrice(symbol);
+                if (alphaPrice > 0) return alphaPrice;
+            } catch (error) {
+                console.log(`Alpha Vantage failed for ${symbol}:`, error.message);
+            }
+
+            // Method 6: Try Financial Modeling Prep API
+            try {
+                const fmpPrice = await this.getFinancialModelingPrepPrice(symbol);
+                if (fmpPrice > 0) return fmpPrice;
+            } catch (error) {
+                console.log(`Financial Modeling Prep failed for ${symbol}:`, error.message);
             }
         }
 
-        // Method 3: Try free crypto API for crypto symbols
+        // Method 7: Try free crypto API for crypto symbols
         if (this.isCryptoSymbol(symbol)) {
             try {
                 const cryptoPrice = await this.getCryptoPriceFromCoinGecko(symbol);
@@ -294,40 +326,110 @@ const API = {
         return price;
     },
 
-    // Get stock price from Yahoo Finance alternative API
-    async getYahooFinancePrice(symbol) {
-        console.log(`🔍 Fetching ${symbol} from Yahoo Finance API...`);
+    // Get stock price from Google Finance API (free, good CORS support)
+    async getGoogleFinancePrice(symbol) {
+        console.log(`🔍 Fetching ${symbol} from Google Finance API...`);
         
         try {
-            // Using Yahoo Finance API directly
-            const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, {
+            // Using Financial Modeling Prep which has better CORS support
+            const response = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=demo`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    'User-Agent': 'Mozilla/5.0 (compatible; Portfolio-Tracker/1.0)'
                 }
             });
 
             if (!response.ok) {
-                console.warn(`Yahoo Finance API error for ${symbol}: ${response.status}`);
-                throw new Error(`Yahoo Finance API error: ${response.status}`);
+                throw new Error(`Financial API error: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log(`Yahoo Finance response for ${symbol}:`, data);
+            console.log(`Financial API response for ${symbol}:`, data);
+            
+            const quote = data?.[0];
+            const price = quote?.price || quote?.previousClose;
+            
+            if (!price || price <= 0) {
+                throw new Error(`Invalid price for ${symbol}: ${price}`);
+            }
+            
+            console.log(`✅ Financial API price for ${symbol}: $${price}`);
+            return price;
+        } catch (error) {
+            console.warn(`Financial API failed for ${symbol}:`, error.message);
+            throw error;
+        }
+    },
+
+    // Twelvedata API (free tier, good CORS support)
+    async getTwelveDataPrice(symbol) {
+        console.log(`🔍 Fetching ${symbol} from Twelvedata API...`);
+        
+        try {
+            // Free tier, good CORS support
+            const response = await fetch(`https://api.twelvedata.com/price?symbol=${symbol}&apikey=demo`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Twelvedata API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Twelvedata response for ${symbol}:`, data);
+            
+            const price = parseFloat(data?.price);
+            
+            if (!price || price <= 0) {
+                throw new Error(`Invalid Twelvedata price for ${symbol}: ${price}`);
+            }
+            
+            console.log(`✅ Twelvedata price for ${symbol}: $${price}`);
+            return price;
+        } catch (error) {
+            console.warn(`Twelvedata failed for ${symbol}:`, error.message);
+            throw error;
+        }
+    },
+
+    // Yahoo Finance with CORS proxy
+    async getYahooFinanceProxyPrice(symbol) {
+        console.log(`🔍 Fetching ${symbol} from Yahoo Finance via CORS proxy...`);
+        
+        try {
+            // Using a CORS proxy service
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+            
+            const response = await fetch(proxyUrl + encodeURIComponent(yahooUrl), {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Yahoo Finance proxy error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Yahoo Finance proxy response for ${symbol}:`, data);
             
             const result = data?.chart?.result?.[0];
             const price = result?.meta?.regularMarketPrice || result?.meta?.previousClose;
             
             if (!price || price <= 0) {
-                console.warn(`Invalid Yahoo Finance price for ${symbol}: ${price}`);
-                throw new Error('Invalid price data from Yahoo Finance');
+                throw new Error(`Invalid Yahoo Finance proxy price for ${symbol}: ${price}`);
             }
             
-            console.log(`✅ Yahoo Finance price for ${symbol}: $${price}`);
+            console.log(`✅ Yahoo Finance proxy price for ${symbol}: $${price}`);
             return price;
         } catch (error) {
-            console.warn(`Yahoo Finance failed for ${symbol}:`, error.message);
+            console.warn(`Yahoo Finance proxy failed for ${symbol}:`, error.message);
             throw error;
         }
     },
@@ -358,11 +460,13 @@ const API = {
     async getAlphaVantagePrice(symbol) {
         // You'll need to get a free API key from https://www.alphavantage.co/support/#api-key
         // and replace 'YOUR_API_KEY' below
-        const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
+        const apiKey = 'demo'; // Replace with your actual API key for production use
         
         if (apiKey === 'YOUR_API_KEY') {
             throw new Error('Alpha Vantage API key not configured');
         }
+
+        console.log(`🔍 Fetching ${symbol} from Alpha Vantage API...`);
 
         const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`, {
             method: 'GET',
@@ -374,8 +478,51 @@ const API = {
         if (!response.ok) throw new Error(`Alpha Vantage API error: ${response.status}`);
         
         const data = await response.json();
+        console.log(`Alpha Vantage response for ${symbol}:`, data);
+        
         const price = data['Global Quote']?.['05. price'];
-        return parseFloat(price) || 0;
+        const parsedPrice = parseFloat(price);
+        
+        if (!parsedPrice || parsedPrice <= 0) {
+            throw new Error(`Invalid Alpha Vantage price for ${symbol}: ${price}`);
+        }
+        
+        console.log(`✅ Alpha Vantage price for ${symbol}: $${parsedPrice}`);
+        return parsedPrice;
+    },
+
+    // Financial Modeling Prep API (another free option)
+    async getFinancialModelingPrepPrice(symbol) {
+        console.log(`🔍 Fetching ${symbol} from Financial Modeling Prep API...`);
+        
+        try {
+            // Free tier, no API key needed for basic quotes
+            const response = await fetch(`https://financialmodelingprep.com/api/v3/quote-short/${symbol}?apikey=demo`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Financial Modeling Prep API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Financial Modeling Prep response for ${symbol}:`, data);
+            
+            const price = data?.[0]?.price;
+            
+            if (!price || price <= 0) {
+                throw new Error(`Invalid Financial Modeling Prep price for ${symbol}: ${price}`);
+            }
+            
+            console.log(`✅ Financial Modeling Prep price for ${symbol}: $${price}`);
+            return price;
+        } catch (error) {
+            console.warn(`Financial Modeling Prep failed for ${symbol}:`, error.message);
+            throw error;
+        }
     },
 
     // Load data from Google Sheets

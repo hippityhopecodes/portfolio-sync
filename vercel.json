@@ -2,26 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/*.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/index.py"
     }
-  ],
-  "env": {
-    "SHEET_ID": "1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0"
-  },
-  "functions": {
-    "api/*.py": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  ]
 }

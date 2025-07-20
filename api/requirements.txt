@@ -1,7 +1,5 @@
-# Minimal dependencies for Vercel serverless functions
+# Ultra-minimal dependencies for Vercel
 fastapi==0.103.1
-python-dotenv==1.0.0
 google-api-python-client==2.97.0
 google-auth==2.23.0
-pydantic-settings==2.0.3
 requests==2.31.0

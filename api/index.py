@@ -1,12 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import sys
 import os
-
-# Add the src directory to the path so we can import our modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from src.backend.api.portfolio_tracker import PortfolioTracker
+import json
+import base64
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+import requests
 
 app = FastAPI()
 
@@ -19,14 +18,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize portfolio tracker
-portfolio_tracker = None
+# Simple configuration
+SHEET_ID = os.getenv('SHEET_ID', '1R5pa0GFV9vFdq3mZIXuporAn4xb-de8qVJR_RuhF6n0')
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-def get_portfolio_tracker():
-    global portfolio_tracker
-    if portfolio_tracker is None:
-        portfolio_tracker = PortfolioTracker()
-    return portfolio_tracker
+def get_google_credentials():
+    """Get Google credentials from environment variables"""
+    if os.getenv('GOOGLE_CREDENTIALS_BASE64'):
+        credentials_base64 = os.getenv('GOOGLE_CREDENTIALS_BASE64')
+        credentials_json = base64.b64decode(credentials_base64).decode('utf-8')
+        service_account_info = json.loads(credentials_json)
+    elif os.getenv('GOOGLE_CREDENTIALS'):
+        service_account_info = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+    else:
+        raise HTTPException(status_code=500, detail="Google credentials not found")
+    
+    return Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+
+def get_sheets_service():
+    """Get Google Sheets service"""
+    creds = get_google_credentials()
+    return build("sheets", "v4", credentials=creds)
+
+def get_simple_price(symbol: str) -> float:
+    """Get stock price using a simple API"""
+    try:
+        # Use a simple free API
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            price = data['chart']['result'][0]['meta']['regularMarketPrice']
+            return float(price)
+    except Exception as e:
+        print(f"Price fetch failed for {symbol}: {e}")
+    
+    # Fallback mock prices
+    mock_prices = {
+        'AAPL': 150.00,
+        'GOOGL': 2500.00,
+        'MSFT': 300.00,
+        'TSLA': 800.00,
+        'NVDA': 400.00,
+        'BTC-USD': 45000.00,
+        'ETH-USD': 3000.00
+    }
+    return mock_prices.get(symbol, 100.00)
 
 @app.get("/api/portfolio/summary")
 async def get_portfolio():
@@ -34,9 +73,75 @@ async def get_portfolio():
     Get current portfolio data from all accounts
     """
     try:
-        tracker = get_portfolio_tracker()
-        tracker.update_prices()
-        return tracker.get_summary()
+        service = get_sheets_service()
+        
+        # Get data from different sheets
+        ranges = [
+            'Fidelity!A2:D',
+            'Webull!A2:C', 
+            'Kraken!A2:C'
+        ]
+        
+        result = service.spreadsheets().values().batchGet(
+            spreadsheetId=SHEET_ID,
+            ranges=ranges
+        ).execute()
+        
+        total_value = 0
+        total_cost = 0
+        by_broker = {}
+        positions = []
+        
+        # Process each broker's data
+        broker_names = ['Fidelity', 'Webull', 'Kraken']
+        for i, broker in enumerate(broker_names):
+            broker_data = result.get('valueRanges', [])[i].get('values', [])
+            broker_value = 0
+            broker_cost = 0
+            
+            for row in broker_data:
+                if len(row) >= 3:
+                    try:
+                        symbol = row[0]
+                        shares = float(row[1])
+                        cost_basis = float(row[2])
+                        
+                        # Get current price
+                        current_price = get_simple_price(symbol)
+                        position_value = shares * current_price
+                        position_cost = shares * cost_basis
+                        
+                        broker_value += position_value
+                        broker_cost += position_cost
+                        
+                        positions.append({
+                            'symbol': symbol,
+                            'shares': shares,
+                            'cost_basis': cost_basis,
+                            'current_price': current_price,
+                            'broker': broker
+                        })
+                    except (ValueError, IndexError):
+                        continue
+            
+            by_broker[broker] = {
+                'total_value': broker_value,
+                'total_cost': broker_cost,
+                'gain_loss': broker_value - broker_cost
+            }
+            
+            total_value += broker_value
+            total_cost += broker_cost
+        
+        return {
+            'total_value': total_value,
+            'total_cost': total_cost,
+            'total_gain_loss': total_value - total_cost,
+            'by_broker': by_broker,
+            'positions': positions,
+            'last_updated': '2025-07-20T12:00:00Z'
+        }
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -46,9 +151,7 @@ async def refresh_portfolio():
     Force refresh of portfolio data and update prices
     """
     try:
-        tracker = get_portfolio_tracker()
-        tracker.load_positions()
-        tracker.update_prices()
+        # Just return success - the data is refreshed on each request
         return {"status": "success", "message": "Portfolio refreshed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

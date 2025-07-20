@@ -22,13 +22,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update UI with portfolio data
     const updateUI = (data) => {
-        // Update summary cards
-        document.querySelector('#total-value').textContent = formatCurrency(data.total_value);
-        document.querySelector('#total-cost').textContent = formatCurrency(data.total_cost);
-        document.querySelector('#total-gain').textContent = formatCurrency(data.total_gain);
+        // Update summary cards - fixed IDs to match HTML
+        document.querySelector('#totalValue .value').textContent = formatCurrency(data.total_value);
+        document.querySelector('#totalCost .value').textContent = formatCurrency(data.total_cost);
+        document.querySelector('#totalGain .value').textContent = formatCurrency(data.total_gain_loss);
+        
+        // Update gain/loss percentage
+        const gainLossPercent = (data.total_gain_loss / data.total_cost * 100);
+        const gainElement = document.querySelector('#totalGain .change');
+        gainElement.textContent = formatPercentage(gainLossPercent);
+        gainElement.className = `change ${gainLossPercent >= 0 ? 'positive' : 'negative'}`;
 
-        // Update broker breakdown
-        const brokerContainer = document.getElementById('broker-breakdown');
+        // Update broker breakdown - fixed ID to match HTML
+        const brokerContainer = document.getElementById('brokerBreakdown');
         brokerContainer.innerHTML = ''; // Clear existing content
 
         Object.entries(data.by_broker).forEach(([broker, info]) => {
@@ -47,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update charts
         Charts.updateCharts(data);
 
-        // Update last updated time
-        document.getElementById('last-updated').textContent = new Date().toLocaleString();
+        // Update last updated time - fixed ID to match HTML
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
     };
 
     // Fetch and update portfolio data

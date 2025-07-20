@@ -133,12 +133,14 @@ const API = {
 
     // Get real stock price from financial APIs
     async getRealStockPrice(symbol) {
-        // Method 1: Try Yahoo Finance via CORS proxy
-        try {
-            const yahooPrice = await this.getYahooFinancePrice(symbol);
-            if (yahooPrice > 0) return yahooPrice;
-        } catch (error) {
-            console.log(`Yahoo Finance failed for ${symbol}:`, error.message);
+        // Method 1: Try Finnhub API for stocks (free tier, CORS enabled)
+        if (!this.isCryptoSymbol(symbol)) {
+            try {
+                const finnhubPrice = await this.getFinnhubPrice(symbol);
+                if (finnhubPrice > 0) return finnhubPrice;
+            } catch (error) {
+                console.log(`Finnhub failed for ${symbol}:`, error.message);
+            }
         }
 
         // Method 2: Try free crypto API for crypto symbols
@@ -200,24 +202,47 @@ const API = {
         return data[coinId]?.usd || 0;
     },
 
-    // Get stock price from Yahoo Finance (may have CORS issues)
-    async getYahooFinancePrice(symbol) {
-        // Using a public CORS proxy - note: not recommended for production
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+    // Get stock price from Finnhub (free tier, CORS-enabled)
+    async getFinnhubPrice(symbol) {
+        // Using demo API key (limited requests) - you can get a free one at https://finnhub.io/
+        const apiKey = 'demo'; // Replace with your free API key for more requests
         
-        const response = await fetch(proxyUrl + encodeURIComponent(yahooUrl), {
+        const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
             }
         });
 
-        if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+        if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
         
         const data = await response.json();
-        const quote = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        return quote || 0;
+        const price = data.c; // Current price
+        if (!price || price <= 0) throw new Error('Invalid price data');
+        
+        return price;
+    },
+
+    // Alternative: IEX Cloud API (also free tier available)
+    async getIEXPrice(symbol) {
+        // You can get a free API key at https://iexcloud.io/
+        const apiKey = 'YOUR_IEX_API_KEY'; // Replace with your actual API key
+        
+        if (apiKey === 'YOUR_IEX_API_KEY') {
+            throw new Error('IEX API key not configured');
+        }
+
+        const response = await fetch(`https://cloud.iexapis.com/stable/stock/${symbol}/quote?token=${apiKey}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error(`IEX API error: ${response.status}`);
+        
+        const data = await response.json();
+        return data.latestPrice || 0;
     },
 
     // Alpha Vantage API (requires free API key)
